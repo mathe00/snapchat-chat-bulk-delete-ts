@@ -9,6 +9,23 @@
 
 Tired of manually deleting Snapchat messages one by one? This UserScript is your ultimate solution to reclaim your chat history with ease! 🚀 Automate the deletion of **your own** messages on Snapchat Web with a user-friendly interface, configurable options, and a non-intrusive approach.
 
+---
+
+<p align="center">
+  <strong>✨ See it in Action! ✨</strong>
+  <br>
+  Watch a quick demonstration of the script:
+  <br>
+  <video controls width="720" src="example_video_v3.1.5.mp4">
+    Sorry, your browser doesn't support embedded videos, but you can <a href="example_video_v3.1.5.mp4">download it</a>
+    and watch it with your favorite video player!
+  </video>
+  <br>
+  <em>(If the video doesn't load, you can also <a href="example_video_v3.1.5.mp4" target="_blank" rel="noopener noreferrer">open it directly</a>.)</em>
+</p>
+
+---
+
 <a id="tldr"></a>
 ## TL;DR (Too Long; Didn't Read)
 
@@ -55,9 +72,9 @@ The primary goal is to provide a user-friendly way to manage your chat history a
 
 Privacy is a big deal, right? Ever thought about those Snapchat messages you sent, like, 10 years ago? Yeah, me too. It'd be nice to clean those up, especially since some folks *insist* on disabling auto-delete after 24 hours and hoarding messages for ages. Seriously, who does that? 😒 It just triggers me! If you're one of those message-hoarders, we're probably not on the same team here. 😉
 
-If you've got hundreds, or even thousands, of messages to delete, doing it manually is a soul-crushing nightmare. I wanted something like the awesome [undiscord](https://github.com/victornpb/undiscord) tool, but for Snapchat. The moment Snapchat Web dropped, this idea sparked. I even remember seeing someone else, somewhere on the vast internet (OpenUserJS, Greasy Fork, Reddit? The post is lost to time, sadly 😩), asking for pretty much the same thing – a bulk delete for Snapchat Web. I really hope that person stumbles upon this project, or someone unearths their original plea! If that's you, hello!
+If you've got hundreds, or even thousands, of messages to delete, doing it manually is a soul-crushing nightmare. I wanted something like the awesome [undiscord](https://github.com/victornpb/undiscord) tool, but for Snapchat. The moment Snapchat Web dropped, this idea sparked. I even remember seeing someone else, somewhere on the vast internet (OpenUserJS, Greasy Fork, Reddit? The post is lost to time, sadly 😩), asking for pretty much the same thing – a bulk delete for Snapchat Web. While I couldn't find that specific original plea, the sentiment is widespread. For instance, among many similar complaints, this [Reddit user back in 2020](https://www.reddit.com/r/jailbreak/comments/fx0z4e/help_snapchat_ways_to_mass_delete/) was already looking for ways to mass delete messages, even considering modified APKs before Snapchat Web was a thing. I really hope that original person, and others like them, stumble upon this project! If that's you, hello!
 
-Let's be real, Snapchat not having this feature natively in 2025 is just... not cool and frankly, quite annoying. So many articles and Reddit threads are filled with people asking how to do this. It's a pain point for many.
+Let's be real, Snapchat not having this feature natively in 2025 is just... not cool and frankly, quite annoying. So many articles and Reddit threads are filled with people asking how to do this. It's a pain point for many. Now, thanks to this project, there's a solution for Snapchat Web.
 
 My UserScript aims to ease that pain. Currently, it's pretty respectful of Snapchat's setup – less "aggressive" and automated than tools like `undiscord`. You still need to move your mouse over your messages, but once you do, *zap!* They're gone, without you needing to hunt for the tiny delete icon and confirm. I might explore a more automated version down the line, `undiscord`-style. It feels doable, a bit more challenging, but if I put my mind to it, I'm sure I can get there!
 
@@ -135,7 +152,7 @@ Essentially, it automates a series of legitimate clicks that you are entitled to
 ## ⚠️ Important Notes
 
 *   **Snapchat UI Changes:** Snapchat frequently updates its web interface. These updates can break the script if CSS selectors for messages, buttons, or menus change. If the script stops working, it likely needs its selectors updated. Please check for updates or report an issue.
-*   **Rate Limiting & Fair Use:** While this script simulates human-like clicks with delays, deleting an extremely large number of messages very rapidly *could* theoretically trigger Snapchat's automated systems designed to prevent abuse or bot-like activity. The script includes delays to be considerate, but it's always wise to use such tools responsibly. Deleting messages is a permitted action; this script just helps you do it more efficiently for your own data.
+*   **Rate Limiting & Fair Use:** While this script simulates human-like clicks with delays, deleting an extremely large number of messages very rapidly *could* theoretically trigger Snapchat's automated systems designed to prevent abuse or bot-like activity. The script includes delays to be considerate, but it'salways wise to use such tools responsibly. Deleting messages is a permitted action; this script just helps you do it more efficiently for your own data.
 *   **Only Your Messages:** This script is designed to identify and delete *your own* messages. It relies on specific visual cues in the DOM that differentiate your messages from others.
 *   **No Guarantees:** This script is provided as-is, without any warranty. Use it at your own risk. The author is not responsible for any unintended consequences.
 
@@ -175,6 +192,7 @@ snapchat-chat-bulk-delete-ts/
 ├── README.md                 # This file
 ├── build.mjs                 # esbuild build script
 ├── logo.png                  # Script logo image file
+├── example_video_v3.1.5.mp4  # Demo video file
 ├── package-lock.json         # Exact versions of dependencies
 ├── package.json              # Project dependencies and scripts
 └── tsconfig.json             # TypeScript compiler configuration
