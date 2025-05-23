@@ -268,7 +268,7 @@ If you find this script useful, please consider giving it a **star** on GitHub! 
 <a id="author-note"></a>
 ## 👨‍💻 A Note from the Author (Kind Of)
 
-Quick heads-up: I'm not exactly a pro developer. I know my way around the basics, I can vibe with Python, and a lot of my projects on GitHub (including this one) are what you might call "vibe coded." 😅
+Quick heads-up: I'm not exactly a pro developer. I navigate by feel and intuition quite a bit, and a lot of my projects on GitHub (including this one) are what you might call "vibe coded." 😅 This means they often come together through experimentation and following the flow, rather than strict plans.
 
 But hey, as long as it works, doesn't introduce security risks, and gets the job done, that's what counts for me, and hopefully for you too! I think the code isn't *too* messy, so if any actual developers want to jump in and contribute, you're more than welcome!
 
