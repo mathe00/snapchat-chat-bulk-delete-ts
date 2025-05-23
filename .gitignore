@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+# dist/
+build-temp.js
+dist_ts_check/ # TypeScript type check output directory
+
+# TypeScript specific
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE specific
+.vscode/
+.idea/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Environment variables (important for security)
+.env
+.env.local
+.env.*.local
