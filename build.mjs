@@ -1,3 +1,4 @@
+// build.mjs
 import esbuild from 'esbuild';
 import fs from 'fs/promises';
 import path from 'path';
@@ -9,7 +10,8 @@ const SCRIPT_NAME = "Snapchat Chat Bulk Delete"; // Or read from a source
 const VERSION = packageJson.version; // Uses the version from package.json
 const AUTHOR = packageJson.author;
 const NAMESPACE = "https://github.com/mathe00/snapchat-chat-bulk-delete-ts"; // Adapt this
-const ICON_URL = "https://i.imgur.com/bIsPedd.png";
+// Updated ICON_URL
+const ICON_URL = "https://raw.githubusercontent.com/mathe00/snapchat-chat-bulk-delete-ts/main/logo.png";
 const SUPPORT_URL = "https://github.com/mathe00/snapchat-chat-bulk-delete-ts/issues";
 const HOMEPAGE_URL = "https://github.com/mathe00/snapchat-chat-bulk-delete-ts";
 

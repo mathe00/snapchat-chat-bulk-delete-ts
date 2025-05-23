@@ -160,7 +160,7 @@ Essentially, it automates a series of legitimate clicks that you are entitled to
 ## 🚀 Future Features (Roadmap)
 
 -   📦 **Publish on UserScript Hosting Sites**:
-    -   [ ] Publish on [Greasy Fork](https://greasyfork.org/) for easier installation.
+    -   [x] Publish on [Greasy Fork](https://greasyfork.org/) for easier installation.
     -   [ ] Publish on [OpenUserJS.org](https://openuserjs.org/) for wider availability.
 -   🤖 **More Automated Deletion Mode (Undiscord-style)**: Investigate and potentially implement a mode that requires less manual mouse movement, similar to how `undiscord` operates, while still respecting Snapchat's interface.
 -   🛠️ **Refinements & Optimizations**: Continuously improve message detection, deletion speed (within safe limits), and UI responsiveness.

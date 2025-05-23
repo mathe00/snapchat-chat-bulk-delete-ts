@@ -4,7 +4,8 @@ import type { Config } from './types';
 export const CONFIG: Config = {
   SCRIPT_NAME: "Snapchat Chat Bulk Delete",
   VERSION: "3.1.5", // Synchronize with package.json and build.mjs
-  ICON_URL: "https://i.imgur.com/bIsPedd.png",
+  // Updated ICON_URL
+  ICON_URL: "https://raw.githubusercontent.com/mathe00/snapchat-chat-bulk-delete-ts/main/logo.png",
   STORAGE_KEYS: {
     REVERSE_ORDER: "scbd_reverse_order_v3_1_5", // Version bump for storage keys
     AUTO_SCROLL: "scbd_auto_scroll_v3_1_5",
