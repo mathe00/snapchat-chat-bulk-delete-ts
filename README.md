@@ -16,12 +16,12 @@ Tired of manually deleting Snapchat messages one by one? This UserScript is your
   <br>
   Watch a quick demonstration of the script:
   <br>
-  <video controls width="720" src="example_video_v3.1.5.mp4">
-    Sorry, your browser doesn't support embedded videos, but you can <a href="example_video_v3.1.5.mp4">download it</a>
+  <video controls width="720" src="https://github.com/user-attachments/assets/f14d8935-bd72-48d3-a28b-52d5b0d3302a">
+    Sorry, your browser doesn't support embedded videos, but you can <a href="https://github.com/user-attachments/assets/f14d8935-bd72-48d3-a28b-52d5b0d3302a">download it</a>
     and watch it with your favorite video player!
   </video>
   <br>
-  <em>(If the video doesn't load, you can also <a href="example_video_v3.1.5.mp4" target="_blank" rel="noopener noreferrer">open it directly</a>.)</em>
+  <em>(If the video doesn't load, you can also <a href="https://github.com/user-attachments/assets/f14d8935-bd72-48d3-a28b-52d5b0d3302a" target="_blank" rel="noopener noreferrer">open it directly</a>.)</em>
 </p>
 
 ---
