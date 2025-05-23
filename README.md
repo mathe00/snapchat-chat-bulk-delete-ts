@@ -9,6 +9,10 @@
 
 Tired of manually deleting Snapchat messages one by one? This UserScript is your ultimate solution to reclaim your chat history with ease! 🚀 Automate the deletion of **your own** messages on Snapchat Web with a user-friendly interface, configurable options, and a non-intrusive approach.
 
+<p align="center">
+  <strong>🚀 <a href="https://update.greasyfork.org/scripts/536981/Snapchat%20Chat%20Bulk%20Delete.user.js" title="Click to install the UserScript from Greasy Fork">Install the Script Now (from Greasy Fork)!</a> 🚀</strong>
+</p>
+
 ---
 
 <p align="center">
@@ -32,6 +36,7 @@ Tired of manually deleting Snapchat messages one by one? This UserScript is your
 *   **What is this?** A UserScript to bulk delete **your own** messages on Snapchat Web.
 *   **Why?** To save time, enhance privacy, and finally get rid of messages from people who *never* let them auto-delete 😒.
 *   **How?** Simulates user actions (hovers, clicks) – no API hacking.
+*   **Install:** [Click here to install from Greasy Fork!](https://update.greasyfork.org/scripts/536981/Snapchat%20Chat%20Bulk%20Delete.user.js) (or see [full installation steps](#installation)).
 *   **Cool Features:** Sleek UI ✨, auto-scroll 📜, light/dark themes 🎨, persistent settings 💾, deletion order control, message counter.
 *   **Basically:** Automate tedious clicks to clean up your Snapchat chats.
 
@@ -121,11 +126,15 @@ Essentially, it automates a series of legitimate clicks that you are entitled to
     *   [Tampermonkey](https://www.tampermonkey.net/) (Recommended for Chrome, Edge, Safari, Opera)
     *   [Violentmonkey](https://violentmonkey.github.io/) (Recommended for Firefox, also works on Chrome/Edge)
 2.  **Install the Script:**
-    *   **From GitHub (Recommended):**
-        1.  Click this link to install directly: [`dist/snapchat-chat-bulk-delete.user.js`](https://github.com/mathe00/snapchat-chat-bulk-delete-ts/raw/main/dist/snapchat-chat-bulk-delete.user.js). Your UserScript manager should prompt you.
-        2.  Alternatively, go to the [Releases page](https://github.com/mathe00/snapchat-chat-bulk-delete-ts/releases) and download the `.user.js` file from the latest release.
-    *   **From UserScript Hosting Sites (Coming Soon):**
-        *   Installation links for GreasyFork and OpenUserJS will be added here once the script is published on those platforms. (See [Roadmap](#roadmap))
+    *   **From Greasy Fork (Recommended - Easiest!):**
+        *   ➡️ **[Click here to install from Greasy Fork](https://update.greasyfork.org/scripts/536981/Snapchat%20Chat%20Bulk%20Delete.user.js)** ⬅️
+        *   Your UserScript manager should prompt you to install.
+        *   You can also visit the script's page on [Greasy Fork](https://greasyfork.org/fr/scripts/536981-snapchat-chat-bulk-delete).
+    *   **From GitHub (Alternative):**
+        *   [Click here to install directly from GitHub](https://github.com/mathe00/snapchat-chat-bulk-delete-ts/raw/main/dist/snapchat-chat-bulk-delete.user.js)
+        *   Alternatively, go to the [Releases page](https://github.com/mathe00/snapchat-chat-bulk-delete-ts/releases) and download the `.user.js` file from the latest release.
+    *   **From OpenUserJS:**
+        *   ⏳ Publication pending. (Currently facing technical difficulties with their icon handling. Will revisit later if the `data:URL` method for the icon doesn't work.)
 
 <a id="usage"></a>
 ## 🚀 Usage
@@ -152,7 +161,7 @@ Essentially, it automates a series of legitimate clicks that you are entitled to
 ## ⚠️ Important Notes
 
 *   **Snapchat UI Changes:** Snapchat frequently updates its web interface. These updates can break the script if CSS selectors for messages, buttons, or menus change. If the script stops working, it likely needs its selectors updated. Please check for updates or report an issue.
-*   **Rate Limiting & Fair Use:** While this script simulates human-like clicks with delays, deleting an extremely large number of messages very rapidly *could* theoretically trigger Snapchat's automated systems designed to prevent abuse or bot-like activity. The script includes delays to be considerate, but it'salways wise to use such tools responsibly. Deleting messages is a permitted action; this script just helps you do it more efficiently for your own data.
+*   **Rate Limiting & Fair Use:** While this script simulates human-like clicks with delays, deleting an extremely large number of messages very rapidly *could* theoretically trigger Snapchat's automated systems designed to prevent abuse or bot-like activity. The script includes delays to be considerate, but it's always wise to use such tools responsibly. Deleting messages is a permitted action; this script just helps you do it more efficiently for your own data.
 *   **Only Your Messages:** This script is designed to identify and delete *your own* messages. It relies on specific visual cues in the DOM that differentiate your messages from others.
 *   **No Guarantees:** This script is provided as-is, without any warranty. Use it at your own risk. The author is not responsible for any unintended consequences.
 
@@ -160,8 +169,8 @@ Essentially, it automates a series of legitimate clicks that you are entitled to
 ## 🚀 Future Features (Roadmap)
 
 -   📦 **Publish on UserScript Hosting Sites**:
-    -   [x] Publish on [Greasy Fork](https://greasyfork.org/) for easier installation.
-    -   [ ] Publish on [OpenUserJS.org](https://openuserjs.org/) for wider availability.
+    -   [x] Publish on [Greasy Fork](https://greasyfork.org/fr/scripts/536981-snapchat-chat-bulk-delete) for easier installation.
+    -   [ ] Publish on [OpenUserJS.org](https://openuserjs.org/) for wider availability. (Status: ⏳ Pending - icon issues. Next attempt will be with a `data:URL` for the icon if current 64x64px icon fails.)
 -   🤖 **More Automated Deletion Mode (Undiscord-style)**: Investigate and potentially implement a mode that requires less manual mouse movement, similar to how `undiscord` operates, while still respecting Snapchat's interface.
 -   🛠️ **Refinements & Optimizations**: Continuously improve message detection, deletion speed (within safe limits), and UI responsiveness.
 -   🌍 **Localization**: Add support for more languages in the UI panel if there's demand.
@@ -178,21 +187,22 @@ snapchat-chat-bulk-delete-ts/
 ├── dist/                     # Output directory for the built .user.js script
 │   └── snapchat-chat-bulk-delete.user.js
 ├── src/                      # TypeScript source files
-│   ├── main.ts               # Main entry point, initialization
 │   ├── config.ts             # Configuration, constants, selectors
+│   ├── deleteCounter.ts      # Logic for counting deleted messages
 │   ├── domUtils.ts           # DOM manipulation utilities
 │   ├── gmApi.ts              # Utilities for GM_* functions (e.g., loading logo)
+│   ├── main.ts               # Main entry point, initialization
 │   ├── state.ts              # Global state management and error handling
-│   ├── ui.ts                 # UI panel creation and management
-│   ├── deleteCounter.ts      # Logic for counting deleted messages
 │   ├── themeManager.ts       # Panel theme management
-│   └── types.ts              # TypeScript type definitions
+│   ├── types.ts              # TypeScript type definitions
+│   └── ui.ts                 # UI panel creation and management
 ├── .gitignore
 ├── LICENSE                   # MIT License file
 ├── README.md                 # This file
 ├── build.mjs                 # esbuild build script
-├── logo.png                  # Script logo image file
 ├── example_video_v3.1.5.mp4  # Demo video file
+├── logo.png                  # Original script logo image file (e.g., 512x512)
+├── logo_64.png               # Resized script logo for UserScript icon (64x64)
 ├── package-lock.json         # Exact versions of dependencies
 ├── package.json              # Project dependencies and scripts
 └── tsconfig.json             # TypeScript compiler configuration
