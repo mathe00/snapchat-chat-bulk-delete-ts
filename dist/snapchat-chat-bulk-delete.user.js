@@ -6,7 +6,7 @@
 // @author       mathe00 (Ported by T3 Chat)
 // @match        https://web.snapchat.com/*
 // @match        https://www.snapchat.com/web/*
-// @icon         https://i.imgur.com/bIsPedd.png
+// @icon         https://raw.githubusercontent.com/mathe00/snapchat-chat-bulk-delete-ts/main/logo.png
 // @grant        GM_addStyle
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
@@ -28,7 +28,8 @@ var CONFIG = {
   SCRIPT_NAME: "Snapchat Chat Bulk Delete",
   VERSION: "3.1.5",
   // Synchronize with package.json and build.mjs
-  ICON_URL: "https://i.imgur.com/bIsPedd.png",
+  // Updated ICON_URL
+  ICON_URL: "https://raw.githubusercontent.com/mathe00/snapchat-chat-bulk-delete-ts/main/logo.png",
   STORAGE_KEYS: {
     REVERSE_ORDER: "scbd_reverse_order_v3_1_5",
     // Version bump for storage keys
