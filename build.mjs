@@ -11,7 +11,7 @@ const VERSION = packageJson.version; // Uses the version from package.json
 const AUTHOR = packageJson.author;
 const NAMESPACE = "https://github.com/mathe00/snapchat-chat-bulk-delete-ts"; // Adapt this
 // Updated ICON_URL
-const ICON_URL = "https://raw.githubusercontent.com/mathe00/snapchat-chat-bulk-delete-ts/main/logo.png";
+const ICON_URL = "https://raw.githubusercontent.com/mathe00/snapchat-chat-bulk-delete-ts/main/logo_64.png";
 const SUPPORT_URL = "https://github.com/mathe00/snapchat-chat-bulk-delete-ts/issues";
 const HOMEPAGE_URL = "https://github.com/mathe00/snapchat-chat-bulk-delete-ts";
 
