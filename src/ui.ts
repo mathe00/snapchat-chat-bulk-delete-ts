@@ -1,20 +1,23 @@
 // src/ui.ts
-import { CONFIG } from './config';
-import { STATE, handleError } from './state';
-import { loadLogoViaGM } from './gmApi';
-import { cycleThemePreference, applyPanelTheme } from './themeManager';
-import { getSnapchatPageTheme } from './domUtils';
-import type { ThemeOption, AppliedTheme, UIStateElements } from './types';
-import { DeleteCountManager } from './deleteCounter';
+import { CONFIG } from "./config";
+import { STATE, handleError } from "./state";
+import { setLogoFromBase64 } from "./gmApi"; // Importing the exported function
+import { cycleThemePreference, applyPanelTheme } from "./themeManager";
+import { getSnapchatPageTheme } from "./domUtils";
+import type { ThemeOption, AppliedTheme } from "./types";
+import { DeleteCountManager } from "./deleteCounter";
 
 // --- GM Function Declarations for this module ---
 declare const GM_addStyle: (css: string) => HTMLStyleElement;
-declare const GM_setValue: (key: string, value: any) => void; // GM_setValue typically returns void
+declare const GM_setValue: (key: string, value: any) => Promise<void>;
 // --- End GM Function Declarations ---
+
+// Declare the global constant that will be injected by the build script
+declare const INJECTED_LOGO_BASE64: string;
 
 let deleteCounterInstance: DeleteCountManager;
 export function setUIDeleteCounterInstance(instance: DeleteCountManager) {
-    deleteCounterInstance = instance;
+  deleteCounterInstance = instance;
 }
 
 export const updateUICore = {
@@ -47,85 +50,115 @@ export const updateUICore = {
     const isMinimized = STATE.ui.isMinimized;
     STATE.ui.container.classList.toggle("minimized", isMinimized);
     STATE.ui.minimizeButton.innerHTML = isMinimized ? "&#x2750;" : "&#x2715;";
-    STATE.ui.minimizeButton.title = isMinimized ? "Restore Panel" : "Minimize Panel";
+    STATE.ui.minimizeButton.title = isMinimized
+      ? "Restore Panel"
+      : "Minimize Panel";
 
     if (isMinimized) {
-      if (STATE.ui.infoSection) STATE.ui.infoSection.style.display = 'none';
-      if (STATE.ui.settingsSection) STATE.ui.settingsSection.style.display = 'none';
+      if (STATE.ui.infoSection) STATE.ui.infoSection.style.display = "none";
+      if (STATE.ui.settingsSection)
+        STATE.ui.settingsSection.style.display = "none";
       STATE.ui.isInfoVisible = false;
       STATE.ui.isSettingsVisible = false;
-      if (STATE.ui.container) STATE.ui.container.style.transform = '';
+      if (STATE.ui.container) STATE.ui.container.style.transform = "";
     } else {
-      if (STATE.ui.infoSection) STATE.ui.infoSection.style.display = STATE.ui.isInfoVisible ? 'block' : 'none';
-      if (STATE.ui.settingsSection) STATE.ui.settingsSection.style.display = STATE.ui.isSettingsVisible ? 'block' : 'none';
+      if (STATE.ui.infoSection)
+        STATE.ui.infoSection.style.display = STATE.ui.isInfoVisible
+          ? "block"
+          : "none";
+      if (STATE.ui.settingsSection)
+        STATE.ui.settingsSection.style.display = STATE.ui.isSettingsVisible
+          ? "block"
+          : "none";
       updateUICore.uiPosition();
     }
 
-    if (typeof GM_setValue === 'function') {
-        try {
-            GM_setValue(CONFIG.STORAGE_KEYS.PANEL_MINIMIZED, isMinimized);
-        } catch (e: any) {
-            handleError(e, "Error calling GM_setValue in panelVisibility");
-        }
+    if (typeof GM_setValue === "function") {
+      try {
+        GM_setValue(CONFIG.STORAGE_KEYS.PANEL_MINIMIZED, isMinimized);
+      } catch (e: any) {
+        handleError(e, "Error calling GM_setValue in panelVisibility");
+      }
     } else {
-        handleError(new Error("GM_setValue is not a function in panelVisibility"), "GM_setValue Check");
+      handleError(
+        new Error("GM_setValue is not a function in panelVisibility"),
+        "GM_setValue Check",
+      );
     }
   },
-  toggleSection: (sectionName: 'info' | 'settings') => {
+  toggleSection: (sectionName: "info" | "settings") => {
     const sectionElement = STATE.ui[`${sectionName}Section`];
-    const visibilityFlag: 'isInfoVisible' | 'isSettingsVisible' =
-        `is${sectionName.charAt(0).toUpperCase() + sectionName.slice(1)}Visible` as 'isInfoVisible' | 'isSettingsVisible';
+    const visibilityFlag: "isInfoVisible" | "isSettingsVisible" =
+      `is${
+        sectionName.charAt(0).toUpperCase() + sectionName.slice(1)
+      }Visible` as "isInfoVisible" | "isSettingsVisible";
 
     if (!sectionElement || STATE.ui.isMinimized) return;
 
     STATE.ui[visibilityFlag] = !STATE.ui[visibilityFlag];
-    sectionElement.style.display = STATE.ui[visibilityFlag] ? 'block' : 'none';
+    sectionElement.style.display = STATE.ui[visibilityFlag] ? "block" : "none";
 
     if (STATE.ui[visibilityFlag]) {
-      const otherSectionName = sectionName === 'info' ? 'settings' : 'info';
+      const otherSectionName = sectionName === "info" ? "settings" : "info";
       const otherSectionElement = STATE.ui[`${otherSectionName}Section`];
-      const otherVisibilityFlag: 'isInfoVisible' | 'isSettingsVisible' =
-        `is${otherSectionName.charAt(0).toUpperCase() + otherSectionName.slice(1)}Visible` as 'isInfoVisible' | 'isSettingsVisible';
+      const otherVisibilityFlag: "isInfoVisible" | "isSettingsVisible" =
+        `is${
+          otherSectionName.charAt(0).toUpperCase() + otherSectionName.slice(1)
+        }Visible` as "isInfoVisible" | "isSettingsVisible";
 
       if (otherSectionElement && STATE.ui[otherVisibilityFlag]) {
         STATE.ui[otherVisibilityFlag] = false;
-        otherSectionElement.style.display = 'none';
+        otherSectionElement.style.display = "none";
       }
     }
   },
   settings: {
     orderToggleButton: () => {
       if (!STATE.ui.orderToggleButton) return;
-      STATE.ui.orderToggleButton.textContent = STATE.reverseOrder ? "Newest → Oldest" : "Oldest → Newest";
+      STATE.ui.orderToggleButton.textContent = STATE.reverseOrder
+        ? "Newest → Oldest"
+        : "Oldest → Newest";
       STATE.ui.orderToggleButton.disabled = STATE.observerActive;
     },
     autoScrollToggleButton: () => {
       if (!STATE.ui.autoScrollToggleButton) return;
-      STATE.ui.autoScrollToggleButton.classList.toggle("enabled", STATE.autoScrollEnabled);
-      STATE.ui.autoScrollToggleButton.setAttribute('aria-checked', String(STATE.autoScrollEnabled));
+      STATE.ui.autoScrollToggleButton.classList.toggle(
+        "enabled",
+        STATE.autoScrollEnabled,
+      );
+      STATE.ui.autoScrollToggleButton.setAttribute(
+        "aria-checked",
+        String(STATE.autoScrollEnabled),
+      );
       STATE.ui.autoScrollToggleButton.disabled = STATE.observerActive;
     },
     themeToggleButton: () => {
       if (!STATE.ui.themeToggleButton) return;
-      const themeName = STATE.themePreference.charAt(0).toUpperCase() + STATE.themePreference.slice(1);
+      const themeName =
+        STATE.themePreference.charAt(0).toUpperCase() +
+        STATE.themePreference.slice(1);
       STATE.ui.themeToggleButton.title = `Theme: ${themeName}`;
-      if (updateUICore.currentThemeDisplay) updateUICore.currentThemeDisplay();
+      if (updateUICore.currentThemeDisplay)
+        updateUICore.currentThemeDisplay();
     },
   },
   versionDisplay: () => {
-    if(STATE.ui.versionDisplay) STATE.ui.versionDisplay.textContent = `v${CONFIG.VERSION}`;
+    if (STATE.ui.versionDisplay)
+      STATE.ui.versionDisplay.textContent = `v${CONFIG.VERSION}`;
   },
   currentThemeDisplay: () => {
-    if(STATE.ui.currentThemeDisplay) {
-      const themeText = STATE.themePreference === 'auto'
-        ? `Auto (${STATE.currentAppliedTheme})`
-        : STATE.themePreference.charAt(0).toUpperCase() + STATE.themePreference.slice(1);
+    if (STATE.ui.currentThemeDisplay) {
+      const themeText =
+        STATE.themePreference === "auto"
+          ? `Auto (${STATE.currentAppliedTheme})`
+          : STATE.themePreference.charAt(0).toUpperCase() +
+            STATE.themePreference.slice(1);
       STATE.ui.currentThemeDisplay.textContent = `Theme: ${themeText}`;
     }
   },
   updateInfoSectionContent: () => {
     if (STATE.ui.infoSection) {
-        STATE.ui.infoSection.innerHTML = `<h4>Information</h4>
+      STATE.ui.infoSection.innerHTML = `<h4>Information</h4>
             <p><strong>${CONFIG.SCRIPT_NAME} v${CONFIG.VERSION}</strong></p>
             <p>Operates by simulating UI clicks. No network requests are modified.
                User's own messages are identified based on their unique appearance in the chat.</p>
@@ -133,14 +166,28 @@ export const updateUICore = {
             <div class="scbd-info-logo-container">
                 <img id="scbd-info-logo-img" alt="Script Logo" class="scbd-info-logo"/>
             </div>`;
-        STATE.ui.infoLogoImg = STATE.ui.infoSection.querySelector<HTMLImageElement>('#scbd-info-logo-img');
-        if (STATE.ui.infoLogoImg) {
-            loadLogoViaGM(STATE.ui.infoLogoImg, CONFIG.ICON_URL, CONFIG.SCRIPT_NAME, handleError);
-        } else {
-            handleError(new Error("Could not find #scbd-info-logo-img after setting innerHTML."), "Info Logo Setup");
-        }
+      STATE.ui.infoLogoImg = STATE.ui.infoSection.querySelector<HTMLImageElement>(
+        "#scbd-info-logo-img",
+      );
+      if (STATE.ui.infoLogoImg) {
+        setLogoFromBase64(
+          STATE.ui.infoLogoImg,
+          typeof INJECTED_LOGO_BASE64 !== "undefined"
+            ? INJECTED_LOGO_BASE64
+            : "",
+          CONFIG.SCRIPT_NAME,
+          handleError,
+        );
+      } else {
+        handleError(
+          new Error(
+            "Could not find #scbd-info-logo-img after setting innerHTML.",
+          ),
+          "Info Logo Setup",
+        );
+      }
     }
-  }
+  },
 };
 
 export function createPanelUI(): void {
@@ -152,50 +199,68 @@ export function createPanelUI(): void {
 
   const header = document.createElement("div");
   header.className = "scbd-header";
-  const logoImg = document.createElement('img');
+  const logoImg = document.createElement("img");
   logoImg.alt = "Logo";
-  logoImg.className = 'scbd-logo';
-  loadLogoViaGM(logoImg, CONFIG.ICON_URL, CONFIG.SCRIPT_NAME, handleError);
+  logoImg.className = "scbd-logo";
+  setLogoFromBase64(
+    logoImg,
+    typeof INJECTED_LOGO_BASE64 !== "undefined" ? INJECTED_LOGO_BASE64 : "",
+    CONFIG.SCRIPT_NAME,
+    handleError,
+  );
   const title = document.createElement("span");
-  title.className = 'scbd-title';
+  title.className = "scbd-title";
   title.textContent = CONFIG.SCRIPT_NAME;
   header.appendChild(logoImg);
   header.appendChild(title);
 
-  const headerControls = document.createElement('div');
-  headerControls.className = 'scbd-header-controls';
+  const headerControls = document.createElement("div");
+  headerControls.className = "scbd-header-controls";
   STATE.ui.themeToggleButton = document.createElement("button");
   STATE.ui.themeToggleButton.className = "scbd-icon-button";
   STATE.ui.themeToggleButton.innerHTML = "🎨";
   STATE.ui.themeToggleButton.title = "Cycle Theme";
-  STATE.ui.themeToggleButton.addEventListener('click', (e) => { e.stopPropagation(); cycleThemePreference(); });
+  STATE.ui.themeToggleButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    cycleThemePreference();
+  });
   headerControls.appendChild(STATE.ui.themeToggleButton);
 
   const settingsButton = document.createElement("button");
   settingsButton.className = "scbd-icon-button";
   settingsButton.innerHTML = "⚙️";
   settingsButton.title = "Settings";
-  settingsButton.addEventListener('click', (e) => { e.stopPropagation(); updateUICore.toggleSection('settings'); });
+  settingsButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    updateUICore.toggleSection("settings");
+  });
   headerControls.appendChild(settingsButton);
 
   const infoButton = document.createElement("button");
   infoButton.className = "scbd-icon-button";
   infoButton.innerHTML = "ℹ️";
   infoButton.title = "Information";
-  infoButton.addEventListener('click', (e) => { e.stopPropagation(); updateUICore.toggleSection('info'); });
+  infoButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    updateUICore.toggleSection("info");
+  });
   headerControls.appendChild(infoButton);
 
   STATE.ui.minimizeButton = document.createElement("button");
   STATE.ui.minimizeButton.className = "scbd-icon-button scbd-minimize-btn";
   STATE.ui.minimizeButton.innerHTML = "&#x2715;";
-  STATE.ui.minimizeButton.addEventListener("click", (e) => { e.stopPropagation(); STATE.ui.isMinimized = !STATE.ui.isMinimized; updateUICore.panelVisibility(); });
+  STATE.ui.minimizeButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    STATE.ui.isMinimized = !STATE.ui.isMinimized;
+    updateUICore.panelVisibility();
+  });
   headerControls.appendChild(STATE.ui.minimizeButton);
   header.appendChild(headerControls);
   STATE.ui.container.appendChild(header);
 
-  const contentArea = document.createElement('div');
-  contentArea.className = 'scbd-content-area';
-  STATE.ui.mainControlsSection = document.createElement('div');
+  const contentArea = document.createElement("div");
+  contentArea.className = "scbd-content-area";
+  STATE.ui.mainControlsSection = document.createElement("div");
   STATE.ui.mainControlsSection.id = "scbd-main-controls";
   STATE.ui.toggleButton = document.createElement("button");
   STATE.ui.toggleButton.id = "scbd-toggle-button";
@@ -209,56 +274,67 @@ export function createPanelUI(): void {
   STATE.ui.settingsSection = document.createElement("div");
   STATE.ui.settingsSection.id = "scbd-settings-section";
   STATE.ui.settingsSection.style.display = "none";
-  const settingsTitle = document.createElement('h4');
-  settingsTitle.textContent = 'Settings';
+  const settingsTitle = document.createElement("h4");
+  settingsTitle.textContent = "Settings";
   STATE.ui.settingsSection.appendChild(settingsTitle);
 
-  const orderDiv = document.createElement('div');
-  orderDiv.className = 'scbd-setting-row';
+  const orderDiv = document.createElement("div");
+  orderDiv.className = "scbd-setting-row";
   orderDiv.innerHTML = `<span>Order:</span> `;
   STATE.ui.orderToggleButton = document.createElement("button");
   STATE.ui.orderToggleButton.className = "scbd-setting-button";
   STATE.ui.orderToggleButton.addEventListener("click", () => {
     if (STATE.observerActive) return;
     STATE.reverseOrder = !STATE.reverseOrder;
-    if (typeof GM_setValue === 'function') {
-        try {
-            GM_setValue(CONFIG.STORAGE_KEYS.REVERSE_ORDER, STATE.reverseOrder);
-        } catch (e: any) {
-            handleError(e, "Error saving order preference");
-        }
+    if (typeof GM_setValue === "function") {
+      try {
+        GM_setValue(CONFIG.STORAGE_KEYS.REVERSE_ORDER, STATE.reverseOrder);
+      } catch (e: any) {
+        handleError(e, "Error saving order preference");
+      }
     } else {
-        handleError(new Error("GM_setValue is not a function for order toggle"), "GM_setValue Check");
+      handleError(
+        new Error("GM_setValue is not a function for order toggle"),
+        "GM_setValue Check",
+      );
     }
-    if (updateUICore.settings?.orderToggleButton) updateUICore.settings.orderToggleButton();
+    if (updateUICore.settings?.orderToggleButton)
+      updateUICore.settings.orderToggleButton();
     if (deleteCounterInstance) deleteCounterInstance.updateDisplay();
   });
   orderDiv.appendChild(STATE.ui.orderToggleButton);
   STATE.ui.settingsSection.appendChild(orderDiv);
 
-  const autoScrollDiv = document.createElement('div');
-  autoScrollDiv.className = 'scbd-setting-row';
-  const autoScrollLabel = document.createElement('span');
+  const autoScrollDiv = document.createElement("div");
+  autoScrollDiv.className = "scbd-setting-row";
+  const autoScrollLabel = document.createElement("span");
   autoScrollLabel.textContent = "Auto-Scroll:";
   autoScrollDiv.appendChild(autoScrollLabel);
   STATE.ui.autoScrollToggleButton = document.createElement("button");
   STATE.ui.autoScrollToggleButton.className = "scbd-toggle-switch";
-  STATE.ui.autoScrollToggleButton.setAttribute('role', 'switch');
-  STATE.ui.autoScrollToggleButton.setAttribute('aria-checked', String(STATE.autoScrollEnabled));
+  STATE.ui.autoScrollToggleButton.setAttribute("role", "switch");
+  STATE.ui.autoScrollToggleButton.setAttribute(
+    "aria-checked",
+    String(STATE.autoScrollEnabled),
+  );
   STATE.ui.autoScrollToggleButton.addEventListener("click", () => {
-      if (STATE.observerActive) return;
-      STATE.autoScrollEnabled = !STATE.autoScrollEnabled;
-      if (typeof GM_setValue === 'function') {
-          try {
-              GM_setValue(CONFIG.STORAGE_KEYS.AUTO_SCROLL, STATE.autoScrollEnabled);
-          } catch (e: any) {
-              handleError(e, "Error saving auto-scroll preference");
-          }
-      } else {
-          handleError(new Error("GM_setValue is not a function for auto-scroll"), "GM_setValue Check");
+    if (STATE.observerActive) return;
+    STATE.autoScrollEnabled = !STATE.autoScrollEnabled;
+    if (typeof GM_setValue === "function") {
+      try {
+        GM_setValue(CONFIG.STORAGE_KEYS.AUTO_SCROLL, STATE.autoScrollEnabled);
+      } catch (e: any) {
+        handleError(e, "Error saving auto-scroll preference");
       }
-      if (updateUICore.settings?.autoScrollToggleButton) updateUICore.settings.autoScrollToggleButton();
-      if (deleteCounterInstance) deleteCounterInstance.updateDisplay();
+    } else {
+      handleError(
+        new Error("GM_setValue is not a function for auto-scroll"),
+        "GM_setValue Check",
+      );
+    }
+    if (updateUICore.settings?.autoScrollToggleButton)
+      updateUICore.settings.autoScrollToggleButton();
+    if (deleteCounterInstance) deleteCounterInstance.updateDisplay();
   });
   autoScrollDiv.appendChild(STATE.ui.autoScrollToggleButton);
   STATE.ui.settingsSection.appendChild(autoScrollDiv);
@@ -267,25 +343,26 @@ export function createPanelUI(): void {
   STATE.ui.infoSection = document.createElement("div");
   STATE.ui.infoSection.id = "scbd-info-section";
   STATE.ui.infoSection.style.display = "none";
-  if (updateUICore.updateInfoSectionContent) updateUICore.updateInfoSectionContent();
+  if (updateUICore.updateInfoSectionContent)
+    updateUICore.updateInfoSectionContent();
   contentArea.appendChild(STATE.ui.infoSection);
   STATE.ui.container.appendChild(contentArea);
 
-  const footer = document.createElement('div');
-  footer.className = 'scbd-footer';
-  STATE.ui.currentThemeDisplay = document.createElement('span');
-  STATE.ui.currentThemeDisplay.id = 'scbd-current-theme';
+  const footer = document.createElement("div");
+  footer.className = "scbd-footer";
+  STATE.ui.currentThemeDisplay = document.createElement("span");
+  STATE.ui.currentThemeDisplay.id = "scbd-current-theme";
   footer.appendChild(STATE.ui.currentThemeDisplay);
-  STATE.ui.versionDisplay = document.createElement('span');
-  STATE.ui.versionDisplay.id = 'scbd-version';
+  STATE.ui.versionDisplay = document.createElement("span");
+  STATE.ui.versionDisplay.id = "scbd-version";
   footer.appendChild(STATE.ui.versionDisplay);
   STATE.ui.container.appendChild(footer);
 
   document.body.appendChild(STATE.ui.container);
-  STATE.ui.container.addEventListener('click', (e) => {
+  STATE.ui.container.addEventListener("click", (e) => {
     if (STATE.ui.isMinimized && e.target === STATE.ui.container) {
-        STATE.ui.isMinimized = false;
-        updateUICore.panelVisibility();
+      STATE.ui.isMinimized = false;
+      updateUICore.panelVisibility();
     }
   });
   setupDragAndDrop();
@@ -298,7 +375,7 @@ export function createPanelUI(): void {
   if (updateUICore.versionDisplay) updateUICore.versionDisplay();
   if (updateUICore.currentThemeDisplay) updateUICore.currentThemeDisplay();
   if (deleteCounterInstance) deleteCounterInstance.updateDisplay();
-  if (STATE.themePreference === 'auto') {
+  if (STATE.themePreference === "auto") {
     applyPanelTheme(getSnapchatPageTheme());
   } else {
     applyPanelTheme(STATE.themePreference as AppliedTheme);
@@ -309,12 +386,17 @@ export function createPanelUI(): void {
 function setupDragAndDrop(): void {
   let initialX: number, initialY: number;
   function dragStart(e: MouseEvent) {
-    if (e.target === STATE.ui.dragHandle && STATE.ui.container && !STATE.ui.isMinimized) {
+    if (
+      e.target === STATE.ui.dragHandle &&
+      STATE.ui.container &&
+      !STATE.ui.isMinimized
+    ) {
       initialX = e.clientX - STATE.uiPosition.x;
       initialY = e.clientY - STATE.uiPosition.y;
       STATE.isDragging = true;
-      document.body.classList.add('scbd-dragging');
-      if (STATE.ui.container) STATE.ui.container.classList.add('scbd-dragging-panel');
+      document.body.classList.add("scbd-dragging");
+      if (STATE.ui.container)
+        STATE.ui.container.classList.add("scbd-dragging-panel");
       document.addEventListener("mousemove", dragMove);
       document.addEventListener("mouseup", dragEnd);
     }
@@ -325,28 +407,37 @@ function setupDragAndDrop(): void {
       const newX = e.clientX - initialX;
       const newY = e.clientY - initialY;
       const rect = STATE.ui.container.getBoundingClientRect();
-      STATE.uiPosition.x = Math.min(window.innerWidth - rect.width - 5, Math.max(5, newX));
-      STATE.uiPosition.y = Math.min(window.innerHeight - rect.height - 5, Math.max(5, newY));
+      STATE.uiPosition.x = Math.min(
+        window.innerWidth - rect.width - 5,
+        Math.max(5, newX),
+      );
+      STATE.uiPosition.y = Math.min(
+        window.innerHeight - rect.height - 5,
+        Math.max(5, newY),
+      );
       updateUICore.uiPosition();
     }
   }
   function dragEnd() {
     if (!STATE.isDragging) return;
     STATE.isDragging = false;
-    document.body.classList.remove('scbd-dragging');
+    document.body.classList.remove("scbd-dragging");
     if (STATE.ui.container) {
-        STATE.ui.container.classList.remove('scbd-dragging-panel');
+      STATE.ui.container.classList.remove("scbd-dragging-panel");
     }
     document.removeEventListener("mousemove", dragMove);
     document.removeEventListener("mouseup", dragEnd);
-    if (typeof GM_setValue === 'function') {
-        try {
-            GM_setValue(CONFIG.STORAGE_KEYS.UI_POSITION, STATE.uiPosition);
-        } catch (e: any) {
-            handleError(e, "Error calling GM_setValue in dragEnd");
-        }
+    if (typeof GM_setValue === "function") {
+      try {
+        GM_setValue(CONFIG.STORAGE_KEYS.UI_POSITION, STATE.uiPosition);
+      } catch (e: any) {
+        handleError(e, "Error calling GM_setValue in dragEnd");
+      }
     } else {
-        handleError(new Error("GM_setValue is not a function in dragEnd"), "GM_setValue Check");
+      handleError(
+        new Error("GM_setValue is not a function in dragEnd"),
+        "GM_setValue Check",
+      );
     }
   }
   if (STATE.ui.container) {
@@ -355,7 +446,7 @@ function setupDragAndDrop(): void {
 }
 
 export function injectStyles(): void {
-  if (typeof GM_addStyle === 'function') {
+  if (typeof GM_addStyle === "function") {
     GM_addStyle(`
       body.scbd-dragging, body.scbd-dragging * { user-select: none !important; cursor: grabbing !important; }
       #scbd-panel-container.scbd-dragging-panel, #scbd-panel-container.scbd-dragging-panel * { cursor: grabbing !important; }
@@ -450,6 +541,9 @@ export function injectStyles(): void {
       @keyframes scbd-fade-in { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
     `);
   } else {
-    handleError(new Error("GM_addStyle is not available for injecting styles."), "injectStyles");
+    handleError(
+      new Error("GM_addStyle is not available for injecting styles."),
+      "injectStyles",
+    );
   }
 }

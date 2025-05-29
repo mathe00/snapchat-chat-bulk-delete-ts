@@ -1,21 +1,56 @@
 // build.mjs
-import esbuild from 'esbuild';
-import fs from 'fs/promises';
-import path from 'path';
+import esbuild from "esbuild";
+import fs from "fs/promises";
+import path from "path";
 
-// Read package.json to get metadata, or define it directly
-const packageJson = JSON.parse(await fs.readFile('./package.json', 'utf-8'));
+// Read package.json to get metadata
+const packageJson = JSON.parse(await fs.readFile("./package.json", "utf-8"));
 
-const SCRIPT_NAME = "Snapchat Chat Bulk Delete"; // Or read from a source
-const VERSION = packageJson.version; // Uses the version from package.json
-const AUTHOR = packageJson.author;
-const NAMESPACE = "https://github.com/mathe00/snapchat-chat-bulk-delete-ts"; // Adapt this
-// Updated ICON_URL
-const ICON_URL = "https://raw.githubusercontent.com/mathe00/snapchat-chat-bulk-delete-ts/main/logo_64.png";
-const SUPPORT_URL = "https://github.com/mathe00/snapchat-chat-bulk-delete-ts/issues";
-const HOMEPAGE_URL = "https://github.com/mathe00/snapchat-chat-bulk-delete-ts";
+const SCRIPT_NAME = "Snapchat Chat Bulk Delete";
+const VERSION = packageJson.version;
+const AUTHOR = packageJson.author; // "mathe00 (Ported by T3 Chat)"
+const NAMESPACE = "https://github.com/mathe00/snapchat-chat-bulk-delete-ts";
+const SUPPORT_URL =
+  "https://github.com/mathe00/snapchat-chat-bulk-delete-ts/issues";
+const HOMEPAGE_URL =
+  "https://github.com/mathe00/snapchat-chat-bulk-delete-ts";
 
-const metadata = `// ==UserScript==
+const entryPoint = "src/main.ts";
+const outfile = "dist/snapchat-chat-bulk-delete.user.js";
+const tempBundleFile = "build-temp.js";
+const logoFilePath = "logo_64.png"; // Path to the logo file
+
+async function getLogoAsBase64DataURL(filePath) {
+  try {
+    const imageBuffer = await fs.readFile(filePath);
+    const base64Image = imageBuffer.toString("base64");
+    // Determine mime type from file extension, default to png
+    const ext = path.extname(filePath).toLowerCase();
+    let mimeType = "image/png";
+    if (ext === ".jpg" || ext === ".jpeg") {
+      mimeType = "image/jpeg";
+    } else if (ext === ".gif") {
+      mimeType = "image/gif";
+    } else if (ext === ".svg") {
+      mimeType = "image/svg+xml";
+    }
+    return `data:${mimeType};base64,${base64Image}`;
+  } catch (error) {
+    console.warn(
+      `Warning: Could not read logo file at ${filePath}. Using a placeholder. Error: ${error.message}`,
+    );
+    // Fallback placeholder if logo file is missing or unreadable
+    return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABbSURBVHhe7cExAQAAAMKg9U9tCF8gAAAAAAAAAAAAAABg9gKAAACAAACAAACAAACAAACAAACAAACAAACAAACAAACAAACAAACAAACAAACAAACAAACAAACAAACAAACAAACAAADgB45UAAGyPjXjAAAAAElFTkSuQmCC";
+  }
+}
+
+async function build() {
+  try {
+    await fs.mkdir(path.dirname(outfile), { recursive: true });
+
+    const logoBase64DataURL = await getLogoAsBase64DataURL(logoFilePath);
+
+    const metadata = `// ==UserScript==
 // @name         ${SCRIPT_NAME}
 // @namespace    ${NAMESPACE}
 // @version      ${VERSION}
@@ -23,9 +58,8 @@ const metadata = `// ==UserScript==
 // @author       ${AUTHOR}
 // @match        https://web.snapchat.com/*
 // @match        https://www.snapchat.com/web/*
-// @icon         ${ICON_URL}
+// @icon         ${logoBase64DataURL}
 // @grant        GM_addStyle
-// @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @run-at       document-idle
@@ -38,57 +72,70 @@ const metadata = `// ==UserScript==
 // ==/UserScript==
 `;
 
-const entryPoint = 'src/main.ts';
-const outfile = 'dist/snapchat-chat-bulk-delete.user.js';
-const tempBundleFile = 'build-temp.js';
-
-async function build() {
-  try {
-    await fs.mkdir(path.dirname(outfile), { recursive: true });
-
     const result = await esbuild.build({
       entryPoints: [entryPoint],
       bundle: true,
       outfile: tempBundleFile,
-      format: 'esm', // Output as ES module, not IIFE
-      target: 'esnext',
-      charset: 'utf8',
-      minify: false, // You can enable minification if desired
-      sourcemap: false, // No sourcemap in the final .user.js
+      format: "esm",
+      target: "esnext",
+      charset: "utf8",
+      minify: false,
+      sourcemap: false,
       treeShaking: true,
     });
 
     if (result.errors.length > 0) {
-      console.error('Build failed:', result.errors);
+      console.error("Build failed:", result.errors);
       process.exit(1);
     }
 
-    const bundledCode = await fs.readFile(tempBundleFile, 'utf-8');
-    const finalScript = `${metadata}\n\n(async function() {\n  'use strict';\n${bundledCode}\n})();\n`;
+    const bundledCode = await fs.readFile(tempBundleFile, "utf-8");
+    // Inject the base64 logo as a global constant within the IIFE
+    const finalScript = `${metadata}\n\n(async function() {\n  'use strict';\nconst INJECTED_LOGO_BASE64 = "${logoBase64DataURL}";\n${bundledCode}\n})();\n`;
 
     await fs.writeFile(outfile, finalScript);
-    await fs.unlink(tempBundleFile); // Clean up temporary file
+    await fs.unlink(tempBundleFile);
 
     console.log(`UserScript built successfully: ${outfile}`);
   } catch (error) {
-    console.error('Build process error:', error);
+    console.error("Build process error:", error);
     process.exit(1);
   }
 }
 
-const watchMode = process.argv.includes('--watch');
+const watchMode = process.argv.includes("--watch");
 
 if (watchMode) {
-  console.log('Watching for changes...');
-  // Basic watch implementation (rebuild on any change in src)
-  // For more sophisticated watching, consider tools like chokidar
-  fs.watch('src', { recursive: true }, async (eventType, filename) => {
-    if (filename && filename.endsWith('.ts')) {
-      console.log(`Detected change in ${filename}, rebuilding...`);
-      await build();
-    }
-  });
+  console.log("Watching for changes...");
+  const watchFiles = ["src", logoFilePath]; // Watch src and the logo file
+  for (const fileOrDir of watchFiles) {
+    fs.watch(fileOrDir, { recursive: true }, async (eventType, filename) => {
+      // Log more info for debugging watch
+      // console.log(`Watch event: ${eventType} on ${filename || fileOrDir}`);
+      if (
+        (filename && (filename.endsWith(".ts") || filename === logoFilePath)) ||
+        (!filename && fileOrDir === logoFilePath) // Direct change to logo file
+      ) {
+        console.log(
+          `Detected change in ${filename || fileOrDir}, rebuilding...`,
+        );
+        await build();
+      } else if (filename) {
+        // For directory changes, check if a relevant file type was involved
+        const changedPath = path.join(
+          fileOrDir,
+          filename,
+        ); // Construct full path if filename is relative to watched dir
+        if (
+          changedPath.endsWith(".ts") ||
+          path.basename(changedPath) === path.basename(logoFilePath)
+        ) {
+          console.log(`Detected change in ${changedPath}, rebuilding...`);
+          await build();
+        }
+      }
+    });
+  }
 }
 
-// Initial build
 build();

@@ -1,13 +1,12 @@
 // src/config.ts
-import type { Config } from './types';
+import type { Config } from "./types";
 
 export const CONFIG: Config = {
   SCRIPT_NAME: "Snapchat Chat Bulk Delete",
   VERSION: "3.1.5", // Synchronize with package.json and build.mjs
-  // Updated ICON_URL
-  ICON_URL: "https://raw.githubusercontent.com/mathe00/snapchat-chat-bulk-delete-ts/main/logo_64.png",
+  // ICON_BASE64_DATA_URL is removed, will be injected by build script
   STORAGE_KEYS: {
-    REVERSE_ORDER: "scbd_reverse_order_v3_1_5", // Version bump for storage keys
+    REVERSE_ORDER: "scbd_reverse_order_v3_1_5",
     AUTO_SCROLL: "scbd_auto_scroll_v3_1_5",
     UI_POSITION: "scbd_ui_position_v3_1_5",
     THEME_PREFERENCE: "scbd_theme_preference_v3_1_5",
@@ -33,8 +32,8 @@ export const CONFIG: Config = {
     SNAPCHAT_ROOT_THEME_DARK: ':root[theme="dark"]',
     SNAPCHAT_ROOT_THEME_LIGHT: ':root[theme="light"]',
   },
-  THEME_OPTIONS: ['auto', 'light', 'dark'],
-  DEFAULT_THEME: 'auto',
+  THEME_OPTIONS: ["auto", "light", "dark"],
+  DEFAULT_THEME: "auto",
 };
 
 // Note: CSS styles are now in ui.ts within injectStyles()

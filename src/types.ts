@@ -3,7 +3,7 @@
 export interface Config {
   SCRIPT_NAME: string;
   VERSION: string;
-  ICON_URL: string;
+  // ICON_BASE64_DATA_URL: string; // Removed
   STORAGE_KEYS: {
     REVERSE_ORDER: string;
     AUTO_SCROLL: string;
@@ -35,8 +35,8 @@ export interface Config {
   DEFAULT_THEME: ThemeOption;
 }
 
-export type ThemeOption = 'auto' | 'light' | 'dark';
-export type AppliedTheme = 'light' | 'dark';
+export type ThemeOption = "auto" | "light" | "dark";
+export type AppliedTheme = "light" | "dark";
 
 export interface UIPosition {
   x: number;
