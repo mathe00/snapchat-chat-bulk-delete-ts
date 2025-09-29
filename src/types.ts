@@ -1,19 +1,20 @@
 // src/types.ts
 
+export type DeletionSpeed = "slow" | "normal" | "fast" | "insane";
+
 export interface Config {
   SCRIPT_NAME: string;
   VERSION: string;
-  // ICON_BASE64_DATA_URL: string; // Removed
   STORAGE_KEYS: {
     REVERSE_ORDER: string;
     AUTO_SCROLL: string;
     UI_POSITION: string;
     THEME_PREFERENCE: string;
     PANEL_MINIMIZED: string;
+    AUTO_DELETION: string; // Changed from DELETION_MODE
+    DELETION_SPEED: string;
   };
   AUTO_SCROLL_DELAY: number;
-  MESSAGE_HOVER_DELAY: number;
-  POST_DELETE_DELAY: number;
   MAX_SCROLL_ATTEMPTS: number;
   SCROLL_INTERVAL: number;
   LOAD_WAIT_AFTER_SCROLL: number;
@@ -24,6 +25,7 @@ export interface Config {
     USER_MESSAGE_IDENTIFIER_ELEMENT: string;
     MESSAGE_HOVER_TARGET_1: string;
     MESSAGE_HOVER_TARGET_2: string;
+    MESSAGE_BUBBLE: string;
     CONTEXT_MENU: string;
     DELETE_BUTTON_CANDIDATE: string;
     DELETE_BUTTON_SVG_PATH_D: string;
@@ -33,6 +35,13 @@ export interface Config {
   };
   THEME_OPTIONS: ThemeOption[];
   DEFAULT_THEME: ThemeOption;
+  SPEED_OPTIONS: DeletionSpeed[];
+  DELETION_SPEEDS: {
+    [key in DeletionSpeed]: {
+      messageInteractionDelay: number;
+      postDeleteDelay: number;
+    };
+  };
 }
 
 export type ThemeOption = "auto" | "light" | "dark";
@@ -52,6 +61,8 @@ export interface UIStateElements {
   orderToggleButton: HTMLButtonElement | null;
   autoScrollToggleButton: HTMLButtonElement | null;
   themeToggleButton: HTMLButtonElement | null;
+  autoDeletionToggleButton: HTMLButtonElement | null; // Changed
+  deletionSpeedToggleButton: HTMLButtonElement | null;
   infoSection: HTMLDivElement | null;
   infoLogoImg: HTMLImageElement | null;
   dragHandle: HTMLDivElement | null;
@@ -67,6 +78,7 @@ export interface GlobalState {
   observerActive: boolean;
   reverseOrder: boolean;
   autoScrollEnabled: boolean;
+  autoDeletionEnabled: boolean; // New
   lastDeleteTime: number;
   isScrolling: boolean;
   isDragging: boolean;
@@ -75,9 +87,10 @@ export interface GlobalState {
   processedMessages: WeakSet<Element>;
   domObserver: MutationObserver | null;
   snapchatThemeObserver: MutationObserver | null;
-  autoScrollIntervalId: number | null; // NodeJS.Timeout in Node, number in browser
-  displayUpdateIntervalId: number | null; // NodeJS.Timeout in Node, number in browser
+  autoScrollIntervalId: number | null;
+  displayUpdateIntervalId: number | null;
   ui: UIStateElements;
   themePreference: ThemeOption;
   currentAppliedTheme: AppliedTheme;
+  deletionSpeed: DeletionSpeed;
 }

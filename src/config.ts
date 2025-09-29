@@ -3,38 +3,42 @@ import type { Config } from "./types";
 
 export const CONFIG: Config = {
   SCRIPT_NAME: "Snapchat Chat Bulk Delete",
-  VERSION: "3.1.5", // Synchronize with package.json and build.mjs
-  // ICON_BASE64_DATA_URL is removed, will be injected by build script
+  VERSION: "3.3.0", // Version updated for new feature
   STORAGE_KEYS: {
     REVERSE_ORDER: "scbd_reverse_order_v3_1_5",
     AUTO_SCROLL: "scbd_auto_scroll_v3_1_5",
     UI_POSITION: "scbd_ui_position_v3_1_5",
     THEME_PREFERENCE: "scbd_theme_preference_v3_1_5",
     PANEL_MINIMIZED: "scbd_panel_minimized_v3_1_5",
+    AUTO_DELETION: "scbd_auto_deletion_v3_3_0", // Changed
+    DELETION_SPEED: "scbd_deletion_speed_v3_2_0",
   },
   AUTO_SCROLL_DELAY: 5000,
-  MESSAGE_HOVER_DELAY: 300,
-  POST_DELETE_DELAY: 50,
   MAX_SCROLL_ATTEMPTS: 5,
   SCROLL_INTERVAL: 200,
   LOAD_WAIT_AFTER_SCROLL: 1000,
   UI_UPDATE_INTERVAL: 1000,
   SELECTORS: {
-    MESSAGE_CONTAINER: ".T1yt2", // Example, verify if still valid
-    MESSAGE_HEADER_SELECTOR: "header",
-    USER_MESSAGE_IDENTIFIER_ELEMENT: "header .nonIntl", // Example
-    MESSAGE_HOVER_TARGET_1: ".KB4Aq", // Example
-    MESSAGE_HOVER_TARGET_2: '[role="button"]', // Example
-    CONTEXT_MENU: ".gFryU", // Example
-    DELETE_BUTTON_CANDIDATE: "button.NcaQH", // Example
-    DELETE_BUTTON_SVG_PATH_D: "9.75 4.624", // Example
-    CHAT_SCROLL_CONTAINER_PARENT_SELECTOR: ".T1yt2", // Example
+    MESSAGE_CONTAINER: ".T1yt2",
+    MESSAGE_HEADER_SELECTOR: "header.ryCEc",
+    USER_MESSAGE_IDENTIFIER_ELEMENT: ".GUB_w span > span.nonIntl",
+    MESSAGE_HOVER_TARGET_1: ".KB4Aq",
+    MESSAGE_HOVER_TARGET_2: '[role="button"]',
+    MESSAGE_BUBBLE: ".KB4Aq",
+    CONTEXT_MENU: ".gFryU",
+    DELETE_BUTTON_CANDIDATE: "button.NcaQH",
+    DELETE_BUTTON_SVG_PATH_D: "9.75 4.624",
+    CHAT_SCROLL_CONTAINER_PARENT_SELECTOR: ".T1yt2",
     SNAPCHAT_ROOT_THEME_DARK: ':root[theme="dark"]',
     SNAPCHAT_ROOT_THEME_LIGHT: ':root[theme="light"]',
   },
   THEME_OPTIONS: ["auto", "light", "dark"],
   DEFAULT_THEME: "auto",
+  SPEED_OPTIONS: ["slow", "normal", "fast", "insane"],
+  DELETION_SPEEDS: {
+    slow: { messageInteractionDelay: 600, postDeleteDelay: 100 },
+    normal: { messageInteractionDelay: 300, postDeleteDelay: 50 },
+    fast: { messageInteractionDelay: 150, postDeleteDelay: 25 },
+    insane: { messageInteractionDelay: 50, postDeleteDelay: 0 },
+  },
 };
-
-// Note: CSS styles are now in ui.ts within injectStyles()
-// If you had very large CSS here, it could remain, but GM_addStyle is cleaner for this size.

@@ -1,11 +1,18 @@
 // src/state.ts
-import type { GlobalState, UIPosition, ThemeOption, AppliedTheme } from './types';
-import { CONFIG } from './config';
+import type {
+  GlobalState,
+  UIPosition,
+  ThemeOption,
+  AppliedTheme,
+  DeletionSpeed,
+} from "./types";
+import { CONFIG } from "./config";
 
 export const STATE: GlobalState = {
   observerActive: false,
   reverseOrder: true,
   autoScrollEnabled: false,
+  autoDeletionEnabled: false, // New
   lastDeleteTime: 0,
   isScrolling: false,
   isDragging: false,
@@ -25,6 +32,8 @@ export const STATE: GlobalState = {
     orderToggleButton: null,
     autoScrollToggleButton: null,
     themeToggleButton: null,
+    autoDeletionToggleButton: null, // Changed
+    deletionSpeedToggleButton: null,
     infoSection: null,
     infoLogoImg: null,
     dragHandle: null,
@@ -36,12 +45,13 @@ export const STATE: GlobalState = {
     currentThemeDisplay: null,
   },
   themePreference: CONFIG.DEFAULT_THEME as ThemeOption,
-  currentAppliedTheme: 'light' as AppliedTheme,
+  currentAppliedTheme: "light" as AppliedTheme,
+  deletionSpeed: "normal" as DeletionSpeed,
 };
 
 export function handleError(error: Error, context: string = "General"): void {
   console.error(
     `[${CONFIG.SCRIPT_NAME} Error] ${context}: ${error.message}`,
-    error.stack || ""
+    error.stack || "",
   );
 }

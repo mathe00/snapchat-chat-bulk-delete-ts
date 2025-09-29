@@ -10,12 +10,19 @@ import type { AppliedTheme } from './types';
  */
 export function simulateHover(element: Element | null, enter: boolean): void {
   if (!element) return;
+  // Get the correct window context from the element itself
+  const eventView = element.ownerDocument.defaultView;
+  if (!eventView) {
+    handleError(new Error("Could not get window context from element"), "simulateHover");
+    return;
+  }
+
   const eventTypes = enter ? ["mouseenter", "mouseover"] : ["mouseleave", "mouseout"];
   eventTypes.forEach((type) => {
     const event = new MouseEvent(type, {
       bubbles: true,
       cancelable: true,
-      view: window,
+      view: eventView, // Use the correct window context
     });
     element.dispatchEvent(event);
     // Dispatch to parent as well, as some event listeners might be on parent elements
@@ -23,7 +30,7 @@ export function simulateHover(element: Element | null, enter: boolean): void {
     let parent = element.parentElement;
     while (parent) {
       parent.dispatchEvent(
-        new MouseEvent(type, { bubbles: true, cancelable: true, view: window })
+        new MouseEvent(type, { bubbles: true, cancelable: true, view: eventView })
       );
       parent = parent.parentElement;
     }

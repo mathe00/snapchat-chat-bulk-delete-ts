@@ -26,46 +26,46 @@ const INJECTED_LOGO_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAA
 // src/config.ts
 var CONFIG = {
   SCRIPT_NAME: "Snapchat Chat Bulk Delete",
-  VERSION: "3.1.5",
-  // Synchronize with package.json and build.mjs
-  // ICON_BASE64_DATA_URL is removed, will be injected by build script
+  VERSION: "3.3.0",
+  // Version updated for new feature
   STORAGE_KEYS: {
     REVERSE_ORDER: "scbd_reverse_order_v3_1_5",
     AUTO_SCROLL: "scbd_auto_scroll_v3_1_5",
     UI_POSITION: "scbd_ui_position_v3_1_5",
     THEME_PREFERENCE: "scbd_theme_preference_v3_1_5",
-    PANEL_MINIMIZED: "scbd_panel_minimized_v3_1_5"
+    PANEL_MINIMIZED: "scbd_panel_minimized_v3_1_5",
+    AUTO_DELETION: "scbd_auto_deletion_v3_3_0",
+    // Changed
+    DELETION_SPEED: "scbd_deletion_speed_v3_2_0"
   },
   AUTO_SCROLL_DELAY: 5e3,
-  MESSAGE_HOVER_DELAY: 300,
-  POST_DELETE_DELAY: 50,
   MAX_SCROLL_ATTEMPTS: 5,
   SCROLL_INTERVAL: 200,
   LOAD_WAIT_AFTER_SCROLL: 1e3,
   UI_UPDATE_INTERVAL: 1e3,
   SELECTORS: {
     MESSAGE_CONTAINER: ".T1yt2",
-    // Example, verify if still valid
-    MESSAGE_HEADER_SELECTOR: "header",
-    USER_MESSAGE_IDENTIFIER_ELEMENT: "header .nonIntl",
-    // Example
+    MESSAGE_HEADER_SELECTOR: "header.ryCEc",
+    USER_MESSAGE_IDENTIFIER_ELEMENT: ".GUB_w span > span.nonIntl",
     MESSAGE_HOVER_TARGET_1: ".KB4Aq",
-    // Example
     MESSAGE_HOVER_TARGET_2: '[role="button"]',
-    // Example
+    MESSAGE_BUBBLE: ".KB4Aq",
     CONTEXT_MENU: ".gFryU",
-    // Example
     DELETE_BUTTON_CANDIDATE: "button.NcaQH",
-    // Example
     DELETE_BUTTON_SVG_PATH_D: "9.75 4.624",
-    // Example
     CHAT_SCROLL_CONTAINER_PARENT_SELECTOR: ".T1yt2",
-    // Example
     SNAPCHAT_ROOT_THEME_DARK: ':root[theme="dark"]',
     SNAPCHAT_ROOT_THEME_LIGHT: ':root[theme="light"]'
   },
   THEME_OPTIONS: ["auto", "light", "dark"],
-  DEFAULT_THEME: "auto"
+  DEFAULT_THEME: "auto",
+  SPEED_OPTIONS: ["slow", "normal", "fast", "insane"],
+  DELETION_SPEEDS: {
+    slow: { messageInteractionDelay: 600, postDeleteDelay: 100 },
+    normal: { messageInteractionDelay: 300, postDeleteDelay: 50 },
+    fast: { messageInteractionDelay: 150, postDeleteDelay: 25 },
+    insane: { messageInteractionDelay: 50, postDeleteDelay: 0 }
+  }
 };
 
 // src/state.ts
@@ -73,6 +73,8 @@ var STATE = {
   observerActive: false,
   reverseOrder: true,
   autoScrollEnabled: false,
+  autoDeletionEnabled: false,
+  // New
   lastDeleteTime: 0,
   isScrolling: false,
   isDragging: false,
@@ -92,6 +94,9 @@ var STATE = {
     orderToggleButton: null,
     autoScrollToggleButton: null,
     themeToggleButton: null,
+    autoDeletionToggleButton: null,
+    // Changed
+    deletionSpeedToggleButton: null,
     infoSection: null,
     infoLogoImg: null,
     dragHandle: null,
@@ -103,7 +108,8 @@ var STATE = {
     currentThemeDisplay: null
   },
   themePreference: CONFIG.DEFAULT_THEME,
-  currentAppliedTheme: "light"
+  currentAppliedTheme: "light",
+  deletionSpeed: "normal"
 };
 function handleError(error, context = "General") {
   console.error(
@@ -115,18 +121,24 @@ function handleError(error, context = "General") {
 // src/domUtils.ts
 function simulateHover(element, enter) {
   if (!element) return;
+  const eventView = element.ownerDocument.defaultView;
+  if (!eventView) {
+    handleError(new Error("Could not get window context from element"), "simulateHover");
+    return;
+  }
   const eventTypes = enter ? ["mouseenter", "mouseover"] : ["mouseleave", "mouseout"];
   eventTypes.forEach((type) => {
     const event = new MouseEvent(type, {
       bubbles: true,
       cancelable: true,
-      view: window
+      view: eventView
+      // Use the correct window context
     });
     element.dispatchEvent(event);
     let parent = element.parentElement;
     while (parent) {
       parent.dispatchEvent(
-        new MouseEvent(type, { bubbles: true, cancelable: true, view: window })
+        new MouseEvent(type, { bubbles: true, cancelable: true, view: eventView })
       );
       parent = parent.parentElement;
     }
@@ -331,6 +343,25 @@ var updateUICore = {
       STATE.ui.themeToggleButton.title = `Theme: ${themeName}`;
       if (updateUICore.currentThemeDisplay)
         updateUICore.currentThemeDisplay();
+    },
+    autoDeletionToggleButton: () => {
+      if (!STATE.ui.autoDeletionToggleButton) return;
+      STATE.ui.autoDeletionToggleButton.classList.toggle(
+        "enabled",
+        STATE.autoDeletionEnabled
+      );
+      STATE.ui.autoDeletionToggleButton.setAttribute(
+        "aria-checked",
+        String(STATE.autoDeletionEnabled)
+      );
+      STATE.ui.autoDeletionToggleButton.disabled = STATE.observerActive;
+    },
+    deletionSpeedToggleButton: () => {
+      if (!STATE.ui.deletionSpeedToggleButton) return;
+      const btn = STATE.ui.deletionSpeedToggleButton;
+      const speed = STATE.deletionSpeed;
+      btn.textContent = `Speed: ${speed.charAt(0).toUpperCase() + speed.slice(1)}`;
+      btn.disabled = STATE.observerActive;
     }
   },
   versionDisplay: () => {
@@ -454,6 +485,28 @@ function createPanelUI() {
   const settingsTitle = document.createElement("h4");
   settingsTitle.textContent = "Settings";
   STATE.ui.settingsSection.appendChild(settingsTitle);
+  const deletionSpeedDiv = document.createElement("div");
+  deletionSpeedDiv.className = "scbd-setting-row";
+  deletionSpeedDiv.innerHTML = `<span>Speed:</span> `;
+  STATE.ui.deletionSpeedToggleButton = document.createElement("button");
+  STATE.ui.deletionSpeedToggleButton.className = "scbd-setting-button";
+  STATE.ui.deletionSpeedToggleButton.addEventListener("click", () => {
+    if (STATE.observerActive) return;
+    const currentIndex = CONFIG.SPEED_OPTIONS.indexOf(STATE.deletionSpeed);
+    const nextIndex = (currentIndex + 1) % CONFIG.SPEED_OPTIONS.length;
+    STATE.deletionSpeed = CONFIG.SPEED_OPTIONS[nextIndex];
+    if (typeof GM_setValue === "function") {
+      try {
+        GM_setValue(CONFIG.STORAGE_KEYS.DELETION_SPEED, STATE.deletionSpeed);
+      } catch (e) {
+        handleError(e, "Error saving deletion speed preference");
+      }
+    }
+    if (updateUICore.settings?.deletionSpeedToggleButton)
+      updateUICore.settings.deletionSpeedToggleButton();
+  });
+  deletionSpeedDiv.appendChild(STATE.ui.deletionSpeedToggleButton);
+  STATE.ui.settingsSection.appendChild(deletionSpeedDiv);
   const orderDiv = document.createElement("div");
   orderDiv.className = "scbd-setting-row";
   orderDiv.innerHTML = `<span>Order:</span> `;
@@ -468,11 +521,6 @@ function createPanelUI() {
       } catch (e) {
         handleError(e, "Error saving order preference");
       }
-    } else {
-      handleError(
-        new Error("GM_setValue is not a function for order toggle"),
-        "GM_setValue Check"
-      );
     }
     if (updateUICore.settings?.orderToggleButton)
       updateUICore.settings.orderToggleButton();
@@ -480,6 +528,29 @@ function createPanelUI() {
   });
   orderDiv.appendChild(STATE.ui.orderToggleButton);
   STATE.ui.settingsSection.appendChild(orderDiv);
+  const autoDeletionDiv = document.createElement("div");
+  autoDeletionDiv.className = "scbd-setting-row";
+  const autoDeletionLabel = document.createElement("span");
+  autoDeletionLabel.textContent = "Automatic Deletion:";
+  autoDeletionDiv.appendChild(autoDeletionLabel);
+  STATE.ui.autoDeletionToggleButton = document.createElement("button");
+  STATE.ui.autoDeletionToggleButton.className = "scbd-toggle-switch";
+  STATE.ui.autoDeletionToggleButton.setAttribute("role", "switch");
+  STATE.ui.autoDeletionToggleButton.addEventListener("click", () => {
+    if (STATE.observerActive) return;
+    STATE.autoDeletionEnabled = !STATE.autoDeletionEnabled;
+    if (typeof GM_setValue === "function") {
+      try {
+        GM_setValue(CONFIG.STORAGE_KEYS.AUTO_DELETION, STATE.autoDeletionEnabled);
+      } catch (e) {
+        handleError(e, "Error saving auto-deletion preference");
+      }
+    }
+    if (updateUICore.settings?.autoDeletionToggleButton)
+      updateUICore.settings.autoDeletionToggleButton();
+  });
+  autoDeletionDiv.appendChild(STATE.ui.autoDeletionToggleButton);
+  STATE.ui.settingsSection.appendChild(autoDeletionDiv);
   const autoScrollDiv = document.createElement("div");
   autoScrollDiv.className = "scbd-setting-row";
   const autoScrollLabel = document.createElement("span");
@@ -501,11 +572,6 @@ function createPanelUI() {
       } catch (e) {
         handleError(e, "Error saving auto-scroll preference");
       }
-    } else {
-      handleError(
-        new Error("GM_setValue is not a function for auto-scroll"),
-        "GM_setValue Check"
-      );
     }
     if (updateUICore.settings?.autoScrollToggleButton)
       updateUICore.settings.autoScrollToggleButton();
@@ -540,6 +606,8 @@ function createPanelUI() {
   setupDragAndDrop();
   updateUICore.toggleButtonState();
   if (updateUICore.settings) {
+    updateUICore.settings.autoDeletionToggleButton();
+    updateUICore.settings.deletionSpeedToggleButton();
     updateUICore.settings.orderToggleButton();
     updateUICore.settings.autoScrollToggleButton();
     updateUICore.settings.themeToggleButton();
@@ -600,11 +668,6 @@ function setupDragAndDrop() {
       } catch (e) {
         handleError(e, "Error calling GM_setValue in dragEnd");
       }
-    } else {
-      handleError(
-        new Error("GM_setValue is not a function in dragEnd"),
-        "GM_setValue Check"
-      );
     }
   }
   if (STATE.ui.container) {
@@ -668,7 +731,7 @@ function injectStyles() {
       #scbd-settings-section h4, #scbd-info-section h4 { margin-top: 0; margin-bottom: 8px; font-size: 13px; opacity: 0.9; }
       .scbd-setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; }
       .scbd-setting-row > span { flex-shrink: 0; font-size: 12px; opacity: 0.9;}
-      .scbd-setting-button { font-size: 11px; padding: 5px 10px; border-radius: 5px; border: 1px solid; cursor: pointer; transition: background-color 0.2s, border-color 0.2s; }
+      .scbd-setting-button { font-size: 11px; padding: 5px 10px; border-radius: 5px; border: 1px solid; cursor: pointer; transition: background-color 0.2s, border-color 0.2s; min-width: 110px; text-align: center; }
       .theme-light .scbd-setting-button { background-color: #f0f0f0; border-color: #ddd; color: #333; }
       .theme-dark .scbd-setting-button { background-color: #383838; border-color: #555; color: #ddd; }
       .theme-light .scbd-setting-button:hover { background-color: #e0e0e0; border-color: #ccc; }
@@ -706,11 +769,6 @@ function injectStyles() {
 
       @keyframes scbd-fade-in { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
     `);
-  } else {
-    handleError(
-      new Error("GM_addStyle is not available for injecting styles."),
-      "injectStyles"
-    );
   }
 }
 
@@ -779,61 +837,109 @@ async function loadPreferences() {
       handleError(new Error("GM_getValue is not available for loading preferences."), "loadPreferences");
       STATE.reverseOrder = true;
       STATE.autoScrollEnabled = false;
+      STATE.autoDeletionEnabled = false;
       STATE.uiPosition = { x: 20, y: 20 };
       STATE.themePreference = CONFIG.DEFAULT_THEME;
       STATE.ui.isMinimized = false;
+      STATE.deletionSpeed = "normal";
       console.log(`[${CONFIG.SCRIPT_NAME}] GM_getValue not found, defaults set.`);
       return;
     }
     STATE.reverseOrder = await GM_getValue(CONFIG.STORAGE_KEYS.REVERSE_ORDER, true);
     STATE.autoScrollEnabled = await GM_getValue(CONFIG.STORAGE_KEYS.AUTO_SCROLL, false);
+    STATE.autoDeletionEnabled = await GM_getValue(CONFIG.STORAGE_KEYS.AUTO_DELETION, false);
     const storedPosition = await GM_getValue(CONFIG.STORAGE_KEYS.UI_POSITION);
     STATE.uiPosition = storedPosition || { x: 20, y: 20 };
     STATE.themePreference = await GM_getValue(CONFIG.STORAGE_KEYS.THEME_PREFERENCE, CONFIG.DEFAULT_THEME);
     STATE.ui.isMinimized = await GM_getValue(CONFIG.STORAGE_KEYS.PANEL_MINIMIZED, false);
+    STATE.deletionSpeed = await GM_getValue(CONFIG.STORAGE_KEYS.DELETION_SPEED, "normal");
     console.log(`[${CONFIG.SCRIPT_NAME}] Preferences loaded via GM_getValue.`);
   } catch (error) {
     handleError(error, "Loading preferences");
     STATE.reverseOrder = true;
     STATE.autoScrollEnabled = false;
+    STATE.autoDeletionEnabled = false;
     STATE.uiPosition = { x: 20, y: 20 };
     STATE.themePreference = CONFIG.DEFAULT_THEME;
     STATE.ui.isMinimized = false;
+    STATE.deletionSpeed = "normal";
   }
 }
 async function handlePotentialDeleteButton(button) {
   if (STATE.processedButtons.has(button)) return;
   try {
     if (isDeleteButton(button)) {
+      const delays = CONFIG.DELETION_SPEEDS[STATE.deletionSpeed];
       STATE.processedButtons.add(button);
       button.click();
       STATE.lastDeleteTime = Date.now();
       await deleteCounter.increment();
-      await new Promise((resolve) => setTimeout(resolve, CONFIG.POST_DELETE_DELAY));
+      await new Promise((resolve) => setTimeout(resolve, delays.postDeleteDelay));
     }
   } catch (error) {
     handleError(error, "Processing delete button");
   }
 }
-async function hoverNextMessage() {
-  if (!STATE.observerActive || STATE.isScrolling) return;
+function findMyMessages() {
+  return Array.from(
+    document.querySelectorAll(CONFIG.SELECTORS.MESSAGE_CONTAINER)
+  ).filter((msgContainer) => {
+    const header = msgContainer.querySelector(CONFIG.SELECTORS.MESSAGE_HEADER_SELECTOR);
+    if (!header) return false;
+    const isUserMessage = !!header.querySelector(CONFIG.SELECTORS.USER_MESSAGE_IDENTIFIER_ELEMENT);
+    return isUserMessage && !STATE.processedMessages.has(msgContainer);
+  });
+}
+async function deleteNextMessageAutomatic() {
+  if (!STATE.observerActive || !STATE.autoDeletionEnabled || STATE.isScrolling) return;
   try {
-    let messages = Array.from(
-      document.querySelectorAll(CONFIG.SELECTORS.MESSAGE_CONTAINER)
-    ).filter((msgContainer) => {
-      const header = msgContainer.querySelector(CONFIG.SELECTORS.MESSAGE_HEADER_SELECTOR);
-      if (!header) return false;
-      const potentialSelfIdentifier = header.querySelector(
-        CONFIG.SELECTORS.USER_MESSAGE_IDENTIFIER_ELEMENT
-      );
-      const isUserMessage = !!potentialSelfIdentifier;
-      return isUserMessage && !STATE.processedMessages.has(msgContainer);
-    });
+    const delays = CONFIG.DELETION_SPEEDS[STATE.deletionSpeed];
+    let messages = findMyMessages();
     if (STATE.reverseOrder) {
       messages.reverse();
     }
-    for (const message of messages) {
-      if (!STATE.observerActive) break;
+    if (messages.length > 0) {
+      const message = messages[0];
+      STATE.processedMessages.add(message);
+      const messageBubble = message.querySelector(CONFIG.SELECTORS.MESSAGE_BUBBLE);
+      if (messageBubble) {
+        const eventView = messageBubble.ownerDocument.defaultView;
+        if (!eventView) {
+          handleError(new Error("Could not get window context from message bubble."), "deleteNextMessageAutomatic");
+          return;
+        }
+        const mousedownEvent = new MouseEvent("mousedown", { bubbles: true, cancelable: true, view: eventView, button: 0, buttons: 1 });
+        messageBubble.dispatchEvent(mousedownEvent);
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        const mouseupEvent = new MouseEvent("mouseup", { bubbles: true, cancelable: true, view: eventView, button: 0 });
+        messageBubble.dispatchEvent(mouseupEvent);
+        await new Promise((resolve) => setTimeout(resolve, delays.messageInteractionDelay));
+        if (!document.querySelector(CONFIG.SELECTORS.CONTEXT_MENU)) {
+          console.warn(`[${CONFIG.SCRIPT_NAME}] Context menu did not appear for a message. Another script might be interfering.`);
+        }
+      } else {
+        handleError(new Error("Could not find message bubble to click."), "deleteNextMessageAutomatic");
+      }
+    }
+  } catch (error) {
+    handleError(error, "Automatic message deletion loop");
+  }
+  if (STATE.observerActive && STATE.autoDeletionEnabled) {
+    const delays = CONFIG.DELETION_SPEEDS[STATE.deletionSpeed];
+    setTimeout(deleteNextMessageAutomatic, delays.messageInteractionDelay * 2);
+  }
+}
+async function hoverNextMessage() {
+  if (!STATE.observerActive || STATE.isScrolling) return;
+  try {
+    const delays = CONFIG.DELETION_SPEEDS[STATE.deletionSpeed];
+    let messages = findMyMessages();
+    if (STATE.reverseOrder) {
+      messages.reverse();
+    }
+    if (messages.length > 0) {
+      const message = messages[0];
+      if (!STATE.observerActive) return;
       STATE.processedMessages.add(message);
       const hoverTargets = [
         message.querySelector(CONFIG.SELECTORS.MESSAGE_HOVER_TARGET_1),
@@ -843,7 +949,7 @@ async function hoverNextMessage() {
       for (const target of hoverTargets) {
         if (!STATE.observerActive || !target) break;
         simulateHover(target, true);
-        await new Promise((resolve) => setTimeout(resolve, CONFIG.MESSAGE_HOVER_DELAY));
+        await new Promise((resolve) => setTimeout(resolve, delays.messageInteractionDelay));
         const menuVisible = !!document.querySelector(CONFIG.SELECTORS.CONTEXT_MENU);
         if (menuVisible) {
           await new Promise((resolve) => setTimeout(resolve, 50));
@@ -853,19 +959,24 @@ async function hoverNextMessage() {
           await new Promise((resolve) => setTimeout(resolve, 10));
         }
       }
-      break;
     }
   } catch (error) {
-    handleError(error, "Automatic message hover");
+    handleError(error, "Manual message hover");
   }
   if (STATE.observerActive) {
-    setTimeout(hoverNextMessage, CONFIG.MESSAGE_HOVER_DELAY * 2);
+    const delays = CONFIG.DELETION_SPEEDS[STATE.deletionSpeed];
+    setTimeout(hoverNextMessage, delays.messageInteractionDelay * 2);
   }
 }
 async function autoScrollChat() {
   if (!STATE.autoScrollEnabled || !STATE.observerActive || STATE.isScrolling) return;
   const now = Date.now();
-  if (STATE.lastDeleteTime === 0 || now - STATE.lastDeleteTime > CONFIG.AUTO_SCROLL_DELAY) {
+  if (now - STATE.lastDeleteTime > CONFIG.AUTO_SCROLL_DELAY) {
+    const messages = findMyMessages();
+    if (messages.length > 0) {
+      STATE.lastDeleteTime = now;
+      return;
+    }
     STATE.isScrolling = true;
     if (STATE.ui.autoScrollToggleButton) {
       STATE.ui.autoScrollToggleButton.classList.add("scrolling");
@@ -929,6 +1040,9 @@ function toggleDeletionProcess() {
     STATE.lastDeleteTime = Date.now();
     setupDomObserver();
     hoverNextMessage().catch((err) => handleError(err, "Initial hoverNextMessage call"));
+    if (STATE.autoDeletionEnabled) {
+      deleteNextMessageAutomatic().catch((err) => handleError(err, "Initial deleteNextMessageAutomatic call"));
+    }
     if (STATE.autoScrollEnabled) {
       if (STATE.autoScrollIntervalId) clearInterval(STATE.autoScrollIntervalId);
       STATE.autoScrollIntervalId = window.setInterval(autoScrollChat, CONFIG.UI_UPDATE_INTERVAL);
@@ -956,6 +1070,8 @@ function toggleDeletionProcess() {
   }
   updateUICore.toggleButtonState();
   if (updateUICore.settings) {
+    updateUICore.settings.autoDeletionToggleButton();
+    updateUICore.settings.deletionSpeedToggleButton();
     updateUICore.settings.orderToggleButton();
     updateUICore.settings.autoScrollToggleButton();
   }

@@ -4,7 +4,11 @@ import { STATE, handleError } from "./state";
 import { setLogoFromBase64 } from "./gmApi"; // Importing the exported function
 import { cycleThemePreference, applyPanelTheme } from "./themeManager";
 import { getSnapchatPageTheme } from "./domUtils";
-import type { ThemeOption, AppliedTheme } from "./types";
+import type {
+  ThemeOption,
+  AppliedTheme,
+  DeletionSpeed,
+} from "./types";
 import { DeleteCountManager } from "./deleteCounter";
 
 // --- GM Function Declarations for this module ---
@@ -140,6 +144,27 @@ export const updateUICore = {
       STATE.ui.themeToggleButton.title = `Theme: ${themeName}`;
       if (updateUICore.currentThemeDisplay)
         updateUICore.currentThemeDisplay();
+    },
+    autoDeletionToggleButton: () => { // New toggle switch updater
+      if (!STATE.ui.autoDeletionToggleButton) return;
+      STATE.ui.autoDeletionToggleButton.classList.toggle(
+        "enabled",
+        STATE.autoDeletionEnabled,
+      );
+      STATE.ui.autoDeletionToggleButton.setAttribute(
+        "aria-checked",
+        String(STATE.autoDeletionEnabled),
+      );
+      STATE.ui.autoDeletionToggleButton.disabled = STATE.observerActive;
+    },
+    deletionSpeedToggleButton: () => {
+      if (!STATE.ui.deletionSpeedToggleButton) return;
+      const btn = STATE.ui.deletionSpeedToggleButton;
+      const speed = STATE.deletionSpeed;
+      btn.textContent = `Speed: ${
+        speed.charAt(0).toUpperCase() + speed.slice(1)
+      }`;
+      btn.disabled = STATE.observerActive;
     },
   },
   versionDisplay: () => {
@@ -278,6 +303,29 @@ export function createPanelUI(): void {
   settingsTitle.textContent = "Settings";
   STATE.ui.settingsSection.appendChild(settingsTitle);
 
+  const deletionSpeedDiv = document.createElement("div");
+  deletionSpeedDiv.className = "scbd-setting-row";
+  deletionSpeedDiv.innerHTML = `<span>Speed:</span> `;
+  STATE.ui.deletionSpeedToggleButton = document.createElement("button");
+  STATE.ui.deletionSpeedToggleButton.className = "scbd-setting-button";
+  STATE.ui.deletionSpeedToggleButton.addEventListener("click", () => {
+    if (STATE.observerActive) return;
+    const currentIndex = CONFIG.SPEED_OPTIONS.indexOf(STATE.deletionSpeed);
+    const nextIndex = (currentIndex + 1) % CONFIG.SPEED_OPTIONS.length;
+    STATE.deletionSpeed = CONFIG.SPEED_OPTIONS[nextIndex];
+    if (typeof GM_setValue === "function") {
+      try {
+        GM_setValue(CONFIG.STORAGE_KEYS.DELETION_SPEED, STATE.deletionSpeed);
+      } catch (e: any) {
+        handleError(e, "Error saving deletion speed preference");
+      }
+    }
+    if (updateUICore.settings?.deletionSpeedToggleButton)
+      updateUICore.settings.deletionSpeedToggleButton();
+  });
+  deletionSpeedDiv.appendChild(STATE.ui.deletionSpeedToggleButton);
+  STATE.ui.settingsSection.appendChild(deletionSpeedDiv);
+
   const orderDiv = document.createElement("div");
   orderDiv.className = "scbd-setting-row";
   orderDiv.innerHTML = `<span>Order:</span> `;
@@ -292,11 +340,6 @@ export function createPanelUI(): void {
       } catch (e: any) {
         handleError(e, "Error saving order preference");
       }
-    } else {
-      handleError(
-        new Error("GM_setValue is not a function for order toggle"),
-        "GM_setValue Check",
-      );
     }
     if (updateUICore.settings?.orderToggleButton)
       updateUICore.settings.orderToggleButton();
@@ -304,6 +347,31 @@ export function createPanelUI(): void {
   });
   orderDiv.appendChild(STATE.ui.orderToggleButton);
   STATE.ui.settingsSection.appendChild(orderDiv);
+
+  // New Automatic Deletion Toggle Switch
+  const autoDeletionDiv = document.createElement("div");
+  autoDeletionDiv.className = "scbd-setting-row";
+  const autoDeletionLabel = document.createElement("span");
+  autoDeletionLabel.textContent = "Automatic Deletion:";
+  autoDeletionDiv.appendChild(autoDeletionLabel);
+  STATE.ui.autoDeletionToggleButton = document.createElement("button");
+  STATE.ui.autoDeletionToggleButton.className = "scbd-toggle-switch";
+  STATE.ui.autoDeletionToggleButton.setAttribute("role", "switch");
+  STATE.ui.autoDeletionToggleButton.addEventListener("click", () => {
+    if (STATE.observerActive) return;
+    STATE.autoDeletionEnabled = !STATE.autoDeletionEnabled;
+    if (typeof GM_setValue === "function") {
+      try {
+        GM_setValue(CONFIG.STORAGE_KEYS.AUTO_DELETION, STATE.autoDeletionEnabled);
+      } catch (e: any) {
+        handleError(e, "Error saving auto-deletion preference");
+      }
+    }
+    if (updateUICore.settings?.autoDeletionToggleButton)
+      updateUICore.settings.autoDeletionToggleButton();
+  });
+  autoDeletionDiv.appendChild(STATE.ui.autoDeletionToggleButton);
+  STATE.ui.settingsSection.appendChild(autoDeletionDiv);
 
   const autoScrollDiv = document.createElement("div");
   autoScrollDiv.className = "scbd-setting-row";
@@ -326,11 +394,6 @@ export function createPanelUI(): void {
       } catch (e: any) {
         handleError(e, "Error saving auto-scroll preference");
       }
-    } else {
-      handleError(
-        new Error("GM_setValue is not a function for auto-scroll"),
-        "GM_setValue Check",
-      );
     }
     if (updateUICore.settings?.autoScrollToggleButton)
       updateUICore.settings.autoScrollToggleButton();
@@ -368,6 +431,8 @@ export function createPanelUI(): void {
   setupDragAndDrop();
   updateUICore.toggleButtonState();
   if (updateUICore.settings) {
+    updateUICore.settings.autoDeletionToggleButton();
+    updateUICore.settings.deletionSpeedToggleButton();
     updateUICore.settings.orderToggleButton();
     updateUICore.settings.autoScrollToggleButton();
     updateUICore.settings.themeToggleButton();
@@ -433,11 +498,6 @@ function setupDragAndDrop(): void {
       } catch (e: any) {
         handleError(e, "Error calling GM_setValue in dragEnd");
       }
-    } else {
-      handleError(
-        new Error("GM_setValue is not a function in dragEnd"),
-        "GM_setValue Check",
-      );
     }
   }
   if (STATE.ui.container) {
@@ -502,7 +562,7 @@ export function injectStyles(): void {
       #scbd-settings-section h4, #scbd-info-section h4 { margin-top: 0; margin-bottom: 8px; font-size: 13px; opacity: 0.9; }
       .scbd-setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; }
       .scbd-setting-row > span { flex-shrink: 0; font-size: 12px; opacity: 0.9;}
-      .scbd-setting-button { font-size: 11px; padding: 5px 10px; border-radius: 5px; border: 1px solid; cursor: pointer; transition: background-color 0.2s, border-color 0.2s; }
+      .scbd-setting-button { font-size: 11px; padding: 5px 10px; border-radius: 5px; border: 1px solid; cursor: pointer; transition: background-color 0.2s, border-color 0.2s; min-width: 110px; text-align: center; }
       .theme-light .scbd-setting-button { background-color: #f0f0f0; border-color: #ddd; color: #333; }
       .theme-dark .scbd-setting-button { background-color: #383838; border-color: #555; color: #ddd; }
       .theme-light .scbd-setting-button:hover { background-color: #e0e0e0; border-color: #ccc; }
@@ -540,10 +600,5 @@ export function injectStyles(): void {
 
       @keyframes scbd-fade-in { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
     `);
-  } else {
-    handleError(
-      new Error("GM_addStyle is not available for injecting styles."),
-      "injectStyles",
-    );
   }
 }
