@@ -166,6 +166,18 @@ export const updateUICore = {
       }`;
       btn.disabled = STATE.observerActive;
     },
+    humanLikeDelaysToggleButton: () => {
+      if (!STATE.ui.humanLikeDelaysToggleButton) return;
+      STATE.ui.humanLikeDelaysToggleButton.classList.toggle(
+        "enabled",
+        STATE.humanLikeDelays,
+      );
+      STATE.ui.humanLikeDelaysToggleButton.setAttribute(
+        "aria-checked",
+        String(STATE.humanLikeDelays),
+      );
+      STATE.ui.humanLikeDelaysToggleButton.disabled = STATE.observerActive;
+    },
   },
   versionDisplay: () => {
     if (STATE.ui.versionDisplay)
@@ -401,6 +413,32 @@ export function createPanelUI(): void {
   });
   autoScrollDiv.appendChild(STATE.ui.autoScrollToggleButton);
   STATE.ui.settingsSection.appendChild(autoScrollDiv);
+
+  // New Human-like Delays Toggle Switch
+  const humanLikeDelaysDiv = document.createElement("div");
+  humanLikeDelaysDiv.className = "scbd-setting-row";
+  const humanLikeDelaysLabel = document.createElement("span");
+  humanLikeDelaysLabel.textContent = "Human-like Delays:";
+  humanLikeDelaysDiv.appendChild(humanLikeDelaysLabel);
+  STATE.ui.humanLikeDelaysToggleButton = document.createElement("button");
+  STATE.ui.humanLikeDelaysToggleButton.className = "scbd-toggle-switch";
+  STATE.ui.humanLikeDelaysToggleButton.setAttribute("role", "switch");
+  STATE.ui.humanLikeDelaysToggleButton.addEventListener("click", () => {
+    if (STATE.observerActive) return;
+    STATE.humanLikeDelays = !STATE.humanLikeDelays;
+    if (typeof GM_setValue === "function") {
+      try {
+        GM_setValue(CONFIG.STORAGE_KEYS.HUMAN_LIKE_DELAYS, STATE.humanLikeDelays);
+      } catch (e: any) {
+        handleError(e, "Error saving human-like delays preference");
+      }
+    }
+    if (updateUICore.settings?.humanLikeDelaysToggleButton)
+      updateUICore.settings.humanLikeDelaysToggleButton();
+  });
+  humanLikeDelaysDiv.appendChild(STATE.ui.humanLikeDelaysToggleButton);
+  STATE.ui.settingsSection.appendChild(humanLikeDelaysDiv);
+
   contentArea.appendChild(STATE.ui.settingsSection);
 
   STATE.ui.infoSection = document.createElement("div");
@@ -435,6 +473,7 @@ export function createPanelUI(): void {
     updateUICore.settings.deletionSpeedToggleButton();
     updateUICore.settings.orderToggleButton();
     updateUICore.settings.autoScrollToggleButton();
+    updateUICore.settings.humanLikeDelaysToggleButton();
     updateUICore.settings.themeToggleButton();
   }
   if (updateUICore.versionDisplay) updateUICore.versionDisplay();

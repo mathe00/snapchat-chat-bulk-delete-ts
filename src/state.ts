@@ -13,6 +13,7 @@ export const STATE: GlobalState = {
   reverseOrder: true,
   autoScrollEnabled: false,
   autoDeletionEnabled: false, // New
+  humanLikeDelays: true, // New - Enable random delays for human-like behavior
   lastDeleteTime: 0,
   isScrolling: false,
   isDragging: false,
@@ -34,6 +35,7 @@ export const STATE: GlobalState = {
     themeToggleButton: null,
     autoDeletionToggleButton: null, // Changed
     deletionSpeedToggleButton: null,
+    humanLikeDelaysToggleButton: null,
     infoSection: null,
     infoLogoImg: null,
     dragHandle: null,

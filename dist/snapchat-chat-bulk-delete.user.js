@@ -36,7 +36,8 @@ var CONFIG = {
     PANEL_MINIMIZED: "scbd_panel_minimized_v3_1_5",
     AUTO_DELETION: "scbd_auto_deletion_v3_3_0",
     // Changed
-    DELETION_SPEED: "scbd_deletion_speed_v3_2_0"
+    DELETION_SPEED: "scbd_deletion_speed_v3_2_0",
+    HUMAN_LIKE_DELAYS: "scbd_human_like_delays_v3_3_0"
   },
   AUTO_SCROLL_DELAY: 5e3,
   MAX_SCROLL_ATTEMPTS: 5,
@@ -48,23 +49,25 @@ var CONFIG = {
     MESSAGE_HEADER_SELECTOR: "header.ryCEc",
     USER_MESSAGE_IDENTIFIER_ELEMENT: ".GUB_w span > span.nonIntl",
     MESSAGE_HOVER_TARGET_1: ".KB4Aq",
-    MESSAGE_HOVER_TARGET_2: '[role="button"]',
+    MESSAGE_HOVER_TARGET_2: "ul.rbTsq",
+    MESSAGE_HOVER_TARGET_3: ".T1yt2",
     MESSAGE_BUBBLE: ".KB4Aq",
     CONTEXT_MENU: ".gFryU",
     DELETE_BUTTON_CANDIDATE: "button.NcaQH",
-    DELETE_BUTTON_SVG_PATH_D: "9.75 4.624",
+    DELETE_BUTTON_SVG_PATH_D: "M9.75 4.624",
     CHAT_SCROLL_CONTAINER_PARENT_SELECTOR: ".T1yt2",
     SNAPCHAT_ROOT_THEME_DARK: ':root[theme="dark"]',
     SNAPCHAT_ROOT_THEME_LIGHT: ':root[theme="light"]'
   },
   THEME_OPTIONS: ["auto", "light", "dark"],
   DEFAULT_THEME: "auto",
-  SPEED_OPTIONS: ["slow", "normal", "fast", "insane"],
+  SPEED_OPTIONS: ["slow", "normal", "fast", "insane", "insane_max"],
   DELETION_SPEEDS: {
-    slow: { messageInteractionDelay: 600, postDeleteDelay: 100 },
-    normal: { messageInteractionDelay: 300, postDeleteDelay: 50 },
-    fast: { messageInteractionDelay: 150, postDeleteDelay: 25 },
-    insane: { messageInteractionDelay: 50, postDeleteDelay: 0 }
+    slow: { messageInteractionDelay: 1500, postDeleteDelay: 500 },
+    normal: { messageInteractionDelay: 1e3, postDeleteDelay: 300 },
+    fast: { messageInteractionDelay: 600, postDeleteDelay: 150 },
+    insane: { messageInteractionDelay: 300, postDeleteDelay: 75 },
+    insane_max: { messageInteractionDelay: 0, postDeleteDelay: 0 }
   }
 };
 
@@ -75,6 +78,8 @@ var STATE = {
   autoScrollEnabled: false,
   autoDeletionEnabled: false,
   // New
+  humanLikeDelays: true,
+  // New - Enable random delays for human-like behavior
   lastDeleteTime: 0,
   isScrolling: false,
   isDragging: false,
@@ -97,6 +102,7 @@ var STATE = {
     autoDeletionToggleButton: null,
     // Changed
     deletionSpeedToggleButton: null,
+    humanLikeDelaysToggleButton: null,
     infoSection: null,
     infoLogoImg: null,
     dragHandle: null,
@@ -127,38 +133,117 @@ function simulateHover(element, enter) {
     return;
   }
   const eventTypes = enter ? ["mouseenter", "mouseover"] : ["mouseleave", "mouseout"];
-  eventTypes.forEach((type) => {
-    const event = new MouseEvent(type, {
+  const useHumanDelays = window.STATE?.humanLikeDelays !== false;
+  const baseDelay = useHumanDelays && enter ? 100 + Math.random() * 200 : useHumanDelays ? 20 + Math.random() * 40 : 0;
+  setTimeout(() => {
+    eventTypes.forEach((type, index) => {
+      const event = new MouseEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        view: eventView,
+        clientX: Math.random() * eventView.innerWidth,
+        clientY: Math.random() * eventView.innerHeight
+      });
+      setTimeout(() => {
+        element.dispatchEvent(event);
+        let parent = element.parentElement;
+        let depth = 0;
+        while (parent && depth < 3) {
+          parent.dispatchEvent(
+            new MouseEvent(type, {
+              bubbles: true,
+              cancelable: true,
+              view: eventView,
+              clientX: Math.random() * eventView.innerWidth,
+              clientY: Math.random() * eventView.innerHeight
+            })
+          );
+          parent = parent.parentElement;
+          depth++;
+        }
+      }, index * 10);
+    });
+  }, baseDelay);
+}
+function triggerContextMenu(element) {
+  return new Promise((resolve) => {
+    if (!element) {
+      resolve(false);
+      return;
+    }
+    const eventView = element.ownerDocument.defaultView;
+    if (!eventView) {
+      resolve(false);
+      return;
+    }
+    const contextEvent = new MouseEvent("contextmenu", {
       bubbles: true,
       cancelable: true,
-      view: eventView
-      // Use the correct window context
+      view: eventView,
+      clientX: Math.random() * eventView.innerWidth,
+      clientY: Math.random() * eventView.innerHeight,
+      button: 2
+      // Right mouse button
     });
-    element.dispatchEvent(event);
-    let parent = element.parentElement;
-    while (parent) {
-      parent.dispatchEvent(
-        new MouseEvent(type, { bubbles: true, cancelable: true, view: eventView })
-      );
-      parent = parent.parentElement;
-    }
+    element.dispatchEvent(contextEvent);
+    setTimeout(() => {
+      const contextMenu = element.querySelector(".gFryU") || document.querySelector(".gFryU");
+      resolve(!!contextMenu);
+    }, 300);
+  });
+}
+function waitForDOMStabilization(timeout = 5e3) {
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+    let lastMessageCount = 0;
+    let stableCount = 0;
+    const checkStability = () => {
+      const messages = document.querySelectorAll(".T1yt2");
+      const currentCount = messages.length;
+      if (currentCount === lastMessageCount) {
+        stableCount++;
+        if (stableCount >= 3) {
+          resolve(true);
+          return;
+        }
+      } else {
+        stableCount = 0;
+        lastMessageCount = currentCount;
+      }
+      if (Date.now() - startTime > timeout) {
+        resolve(false);
+        return;
+      }
+      setTimeout(checkStability, 100);
+    };
+    checkStability();
   });
 }
 function isDeleteButton(button) {
   try {
-    if (!button.closest(CONFIG.SELECTORS.CONTEXT_MENU)) return false;
+    const contextMenu = button.closest(CONFIG.SELECTORS.CONTEXT_MENU);
+    if (!contextMenu) {
+      const anyContextMenu = button.closest('[role="menu"], .menu, [class*="menu"], [class*="context"], .gFryU');
+      return false;
+    }
     const menu = button.closest(CONFIG.SELECTORS.CONTEXT_MENU);
     if (!menu) return false;
-    const buttonsInMenu = menu.querySelectorAll(
-      CONFIG.SELECTORS.DELETE_BUTTON_CANDIDATE
-    );
-    if (buttonsInMenu[buttonsInMenu.length - 1] !== button) return false;
+    const allContainers = menu.querySelectorAll(".gPAXk");
+    const lastContainer = allContainers[allContainers.length - 1];
+    if (!lastContainer) {
+      return false;
+    }
+    const buttonsInLastContainer = lastContainer.querySelectorAll("button.NcaQH");
+    if (buttonsInLastContainer[buttonsInLastContainer.length - 1] !== button) {
+      return false;
+    }
     const svg = button.querySelector("svg");
     if (!svg) return false;
     const path = svg.querySelector("path");
     if (!path) return false;
     const pathData = path.getAttribute("d");
-    return pathData ? pathData.includes(CONFIG.SELECTORS.DELETE_BUTTON_SVG_PATH_D) : false;
+    const isMatch = pathData ? pathData.includes(CONFIG.SELECTORS.DELETE_BUTTON_SVG_PATH_D) : false;
+    return isMatch;
   } catch (error) {
     handleError(error, "isDeleteButton check");
     return false;
@@ -362,6 +447,18 @@ var updateUICore = {
       const speed = STATE.deletionSpeed;
       btn.textContent = `Speed: ${speed.charAt(0).toUpperCase() + speed.slice(1)}`;
       btn.disabled = STATE.observerActive;
+    },
+    humanLikeDelaysToggleButton: () => {
+      if (!STATE.ui.humanLikeDelaysToggleButton) return;
+      STATE.ui.humanLikeDelaysToggleButton.classList.toggle(
+        "enabled",
+        STATE.humanLikeDelays
+      );
+      STATE.ui.humanLikeDelaysToggleButton.setAttribute(
+        "aria-checked",
+        String(STATE.humanLikeDelays)
+      );
+      STATE.ui.humanLikeDelaysToggleButton.disabled = STATE.observerActive;
     }
   },
   versionDisplay: () => {
@@ -579,6 +676,29 @@ function createPanelUI() {
   });
   autoScrollDiv.appendChild(STATE.ui.autoScrollToggleButton);
   STATE.ui.settingsSection.appendChild(autoScrollDiv);
+  const humanLikeDelaysDiv = document.createElement("div");
+  humanLikeDelaysDiv.className = "scbd-setting-row";
+  const humanLikeDelaysLabel = document.createElement("span");
+  humanLikeDelaysLabel.textContent = "Human-like Delays:";
+  humanLikeDelaysDiv.appendChild(humanLikeDelaysLabel);
+  STATE.ui.humanLikeDelaysToggleButton = document.createElement("button");
+  STATE.ui.humanLikeDelaysToggleButton.className = "scbd-toggle-switch";
+  STATE.ui.humanLikeDelaysToggleButton.setAttribute("role", "switch");
+  STATE.ui.humanLikeDelaysToggleButton.addEventListener("click", () => {
+    if (STATE.observerActive) return;
+    STATE.humanLikeDelays = !STATE.humanLikeDelays;
+    if (typeof GM_setValue === "function") {
+      try {
+        GM_setValue(CONFIG.STORAGE_KEYS.HUMAN_LIKE_DELAYS, STATE.humanLikeDelays);
+      } catch (e) {
+        handleError(e, "Error saving human-like delays preference");
+      }
+    }
+    if (updateUICore.settings?.humanLikeDelaysToggleButton)
+      updateUICore.settings.humanLikeDelaysToggleButton();
+  });
+  humanLikeDelaysDiv.appendChild(STATE.ui.humanLikeDelaysToggleButton);
+  STATE.ui.settingsSection.appendChild(humanLikeDelaysDiv);
   contentArea.appendChild(STATE.ui.settingsSection);
   STATE.ui.infoSection = document.createElement("div");
   STATE.ui.infoSection.id = "scbd-info-section";
@@ -610,6 +730,7 @@ function createPanelUI() {
     updateUICore.settings.deletionSpeedToggleButton();
     updateUICore.settings.orderToggleButton();
     updateUICore.settings.autoScrollToggleButton();
+    updateUICore.settings.humanLikeDelaysToggleButton();
     updateUICore.settings.themeToggleButton();
   }
   if (updateUICore.versionDisplay) updateUICore.versionDisplay();
@@ -826,10 +947,6 @@ var DeleteCountManager = class {
 };
 
 // src/main.ts
-console.log(`[${CONFIG.SCRIPT_NAME}] GM_getValue type: ${typeof GM_getValue}`);
-console.log(`[${CONFIG.SCRIPT_NAME}] GM_setValue type: ${typeof GM_setValue}`);
-console.log(`[${CONFIG.SCRIPT_NAME}] GM_addStyle type: ${typeof GM_addStyle}`);
-console.log(`[${CONFIG.SCRIPT_NAME}] GM_xmlhttpRequest type: ${typeof GM_xmlhttpRequest}`);
 var deleteCounter;
 async function loadPreferences() {
   try {
@@ -842,7 +959,6 @@ async function loadPreferences() {
       STATE.themePreference = CONFIG.DEFAULT_THEME;
       STATE.ui.isMinimized = false;
       STATE.deletionSpeed = "normal";
-      console.log(`[${CONFIG.SCRIPT_NAME}] GM_getValue not found, defaults set.`);
       return;
     }
     STATE.reverseOrder = await GM_getValue(CONFIG.STORAGE_KEYS.REVERSE_ORDER, true);
@@ -853,7 +969,7 @@ async function loadPreferences() {
     STATE.themePreference = await GM_getValue(CONFIG.STORAGE_KEYS.THEME_PREFERENCE, CONFIG.DEFAULT_THEME);
     STATE.ui.isMinimized = await GM_getValue(CONFIG.STORAGE_KEYS.PANEL_MINIMIZED, false);
     STATE.deletionSpeed = await GM_getValue(CONFIG.STORAGE_KEYS.DELETION_SPEED, "normal");
-    console.log(`[${CONFIG.SCRIPT_NAME}] Preferences loaded via GM_getValue.`);
+    STATE.humanLikeDelays = await GM_getValue(CONFIG.STORAGE_KEYS.HUMAN_LIKE_DELAYS, true);
   } catch (error) {
     handleError(error, "Loading preferences");
     STATE.reverseOrder = true;
@@ -863,6 +979,7 @@ async function loadPreferences() {
     STATE.themePreference = CONFIG.DEFAULT_THEME;
     STATE.ui.isMinimized = false;
     STATE.deletionSpeed = "normal";
+    STATE.humanLikeDelays = true;
   }
 }
 async function handlePotentialDeleteButton(button) {
@@ -881,14 +998,15 @@ async function handlePotentialDeleteButton(button) {
   }
 }
 function findMyMessages() {
-  return Array.from(
-    document.querySelectorAll(CONFIG.SELECTORS.MESSAGE_CONTAINER)
-  ).filter((msgContainer) => {
+  const allMessages = document.querySelectorAll(CONFIG.SELECTORS.MESSAGE_CONTAINER);
+  const myMessages = Array.from(allMessages).filter((msgContainer) => {
     const header = msgContainer.querySelector(CONFIG.SELECTORS.MESSAGE_HEADER_SELECTOR);
     if (!header) return false;
     const isUserMessage = !!header.querySelector(CONFIG.SELECTORS.USER_MESSAGE_IDENTIFIER_ELEMENT);
-    return isUserMessage && !STATE.processedMessages.has(msgContainer);
+    const isProcessed = STATE.processedMessages.has(msgContainer);
+    return isUserMessage && !isProcessed;
   });
+  return myMessages;
 }
 async function deleteNextMessageAutomatic() {
   if (!STATE.observerActive || !STATE.autoDeletionEnabled || STATE.isScrolling) return;
@@ -915,7 +1033,6 @@ async function deleteNextMessageAutomatic() {
         messageBubble.dispatchEvent(mouseupEvent);
         await new Promise((resolve) => setTimeout(resolve, delays.messageInteractionDelay));
         if (!document.querySelector(CONFIG.SELECTORS.CONTEXT_MENU)) {
-          console.warn(`[${CONFIG.SCRIPT_NAME}] Context menu did not appear for a message. Another script might be interfering.`);
         }
       } else {
         handleError(new Error("Could not find message bubble to click."), "deleteNextMessageAutomatic");
@@ -926,7 +1043,10 @@ async function deleteNextMessageAutomatic() {
   }
   if (STATE.observerActive && STATE.autoDeletionEnabled) {
     const delays = CONFIG.DELETION_SPEEDS[STATE.deletionSpeed];
-    setTimeout(deleteNextMessageAutomatic, delays.messageInteractionDelay * 2);
+    const baseDelay = delays.messageInteractionDelay * 2;
+    const humanDelay = STATE.humanLikeDelays ? Math.random() * 1e3 + 500 : 0;
+    const randomDelay = baseDelay + humanDelay;
+    setTimeout(deleteNextMessageAutomatic, randomDelay);
   }
 }
 async function hoverNextMessage() {
@@ -944,19 +1064,89 @@ async function hoverNextMessage() {
       const hoverTargets = [
         message.querySelector(CONFIG.SELECTORS.MESSAGE_HOVER_TARGET_1),
         message.querySelector(CONFIG.SELECTORS.MESSAGE_HOVER_TARGET_2),
+        message.querySelector(CONFIG.SELECTORS.MESSAGE_HOVER_TARGET_3),
         message
       ].filter(Boolean);
-      for (const target of hoverTargets) {
+      for (let i = 0; i < hoverTargets.length; i++) {
+        const target = hoverTargets[i];
         if (!STATE.observerActive || !target) break;
         simulateHover(target, true);
         await new Promise((resolve) => setTimeout(resolve, delays.messageInteractionDelay));
+        const contextMenuEvent = new MouseEvent("contextmenu", {
+          bubbles: true,
+          cancelable: true,
+          view: target.ownerDocument.defaultView,
+          button: 2,
+          // Right click
+          buttons: 2
+        });
+        target.dispatchEvent(contextMenuEvent);
+        await new Promise((resolve) => setTimeout(resolve, 100));
         const menuVisible = !!document.querySelector(CONFIG.SELECTORS.CONTEXT_MENU);
-        if (menuVisible) {
-          await new Promise((resolve) => setTimeout(resolve, 50));
+        const nestedContextMenus = document.querySelectorAll(".KB4Aq .gFryU, .T1yt2 .gFryU");
+        const messageContextMenu = message.querySelector(".gFryU");
+        const parentContextMenu = message.closest(".gFryU");
+        const allContextMenusInChat = document.querySelectorAll(".gFryU");
+        const messageList = document.querySelector(".MibAa");
+        const isEmptyOrLoading = !messageList || messageList.children.length === 0;
+        if (menuVisible || nestedContextMenus.length > 0 || messageContextMenu || parentContextMenu || allContextMenusInChat.length > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 200));
+          simulateHover(target, false);
+          await new Promise((resolve) => setTimeout(resolve, 100));
           break;
+        } else if (isEmptyOrLoading) {
+          return;
         } else {
           simulateHover(target, false);
-          await new Promise((resolve) => setTimeout(resolve, 10));
+          const fallbackDelay = STATE.humanLikeDelays ? 50 + Math.random() * 100 : 0;
+          await new Promise((resolve) => setTimeout(resolve, fallbackDelay));
+          if (i === hoverTargets.length - 1) {
+            const finalContextMenuCheck = document.querySelector(".gFryU");
+            if (!finalContextMenuCheck) {
+              const remainingMessages2 = document.querySelectorAll(".T1yt2");
+              if (remainingMessages2.length === 0) {
+                return;
+              }
+            }
+          }
+          const contextMenuTriggered = await triggerContextMenu(target);
+          if (contextMenuTriggered) {
+            await new Promise((resolve) => setTimeout(resolve, 200));
+            break;
+          }
+          const clickEvent = new MouseEvent("click", {
+            bubbles: true,
+            cancelable: true,
+            view: target.ownerDocument.defaultView
+          });
+          target.dispatchEvent(clickEvent);
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          const alternativeTargets = [
+            target.querySelector(".KB4Aq"),
+            target.querySelector("ul.rbTsq"),
+            target.closest(".T1yt2")
+          ].filter(Boolean);
+          for (const altTarget of alternativeTargets) {
+            if (altTarget && altTarget !== target) {
+              simulateHover(altTarget, true);
+              await new Promise((resolve) => setTimeout(resolve, 150));
+              const altMenuCheck = document.querySelector(".gFryU");
+              if (altMenuCheck) {
+                await new Promise((resolve) => setTimeout(resolve, 100));
+                break;
+              }
+              simulateHover(altTarget, false);
+            }
+          }
+          const finalMenuCheck = document.querySelector(".gFryU");
+          if (finalMenuCheck) {
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            break;
+          }
+          const remainingMessages = document.querySelectorAll(".T1yt2");
+          if (remainingMessages.length === 0) {
+            return;
+          }
         }
       }
     }
@@ -965,7 +1155,18 @@ async function hoverNextMessage() {
   }
   if (STATE.observerActive) {
     const delays = CONFIG.DELETION_SPEEDS[STATE.deletionSpeed];
-    setTimeout(hoverNextMessage, delays.messageInteractionDelay * 2);
+    waitForDOMStabilization(3e3).then((stable) => {
+      STATE.processedMessages = /* @__PURE__ */ new WeakSet();
+      if (stable) {
+        setTimeout(() => {
+          hoverNextMessage();
+        }, delays.messageInteractionDelay);
+      } else {
+        setTimeout(() => {
+          hoverNextMessage();
+        }, delays.messageInteractionDelay * 2);
+      }
+    });
   }
 }
 async function autoScrollChat() {
@@ -1002,8 +1203,6 @@ async function autoScrollChat() {
         await new Promise((resolve) => setTimeout(resolve, CONFIG.SCROLL_INTERVAL));
       }
       await new Promise((resolve) => setTimeout(resolve, CONFIG.LOAD_WAIT_AFTER_SCROLL));
-    } else {
-      console.warn(`[${CONFIG.SCRIPT_NAME}] Chat scroll container not found.`);
     }
     if (STATE.ui.autoScrollToggleButton) {
       STATE.ui.autoScrollToggleButton.classList.remove("scrolling");
@@ -1026,7 +1225,14 @@ function setupDomObserver() {
             if (elementNode.matches && elementNode.matches(CONFIG.SELECTORS.DELETE_BUTTON_CANDIDATE)) {
               handlePotentialDeleteButton(elementNode).catch((err) => handleError(err, "DOM Observer - direct match"));
             }
-            elementNode.querySelectorAll(CONFIG.SELECTORS.DELETE_BUTTON_CANDIDATE).forEach((btn) => handlePotentialDeleteButton(btn).catch((err) => handleError(err, "DOM Observer - querySelectorAll")));
+            if (elementNode.matches && (elementNode.matches(".IxaB_ button") || elementNode.closest(".IxaB_"))) {
+              if (elementNode.tagName === "BUTTON") {
+                handlePotentialDeleteButton(elementNode).catch((err) => handleError(err, "DOM Observer - context menu button"));
+              }
+            }
+            elementNode.querySelectorAll(CONFIG.SELECTORS.DELETE_BUTTON_CANDIDATE).forEach((btn) => {
+              handlePotentialDeleteButton(btn).catch((err) => handleError(err, "DOM Observer - querySelectorAll"));
+            });
           }
         });
       }
@@ -1078,7 +1284,6 @@ function toggleDeletionProcess() {
   deleteCounter.updateDisplay();
 }
 async function initialize() {
-  console.log(`[${CONFIG.SCRIPT_NAME}] Initializing v${CONFIG.VERSION}...`);
   try {
     deleteCounter = new DeleteCountManager();
     setUIDeleteCounterInstance(deleteCounter);
@@ -1095,7 +1300,6 @@ async function initialize() {
       handleError(new Error("Toggle button not found after UI creation."), "Initialization");
     }
     setupSnapchatThemeObserver();
-    console.log(`[${CONFIG.SCRIPT_NAME}] Initialized successfully.`);
   } catch (error) {
     handleError(error, "Initialization");
   }

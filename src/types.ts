@@ -1,6 +1,6 @@
 // src/types.ts
 
-export type DeletionSpeed = "slow" | "normal" | "fast" | "insane";
+export type DeletionSpeed = "slow" | "normal" | "fast" | "insane" | "insane_max";
 
 export interface Config {
   SCRIPT_NAME: string;
@@ -13,6 +13,7 @@ export interface Config {
     PANEL_MINIMIZED: string;
     AUTO_DELETION: string; // Changed from DELETION_MODE
     DELETION_SPEED: string;
+    HUMAN_LIKE_DELAYS: string;
   };
   AUTO_SCROLL_DELAY: number;
   MAX_SCROLL_ATTEMPTS: number;
@@ -25,6 +26,7 @@ export interface Config {
     USER_MESSAGE_IDENTIFIER_ELEMENT: string;
     MESSAGE_HOVER_TARGET_1: string;
     MESSAGE_HOVER_TARGET_2: string;
+    MESSAGE_HOVER_TARGET_3: string;
     MESSAGE_BUBBLE: string;
     CONTEXT_MENU: string;
     DELETE_BUTTON_CANDIDATE: string;
@@ -63,6 +65,7 @@ export interface UIStateElements {
   themeToggleButton: HTMLButtonElement | null;
   autoDeletionToggleButton: HTMLButtonElement | null; // Changed
   deletionSpeedToggleButton: HTMLButtonElement | null;
+  humanLikeDelaysToggleButton: HTMLButtonElement | null;
   infoSection: HTMLDivElement | null;
   infoLogoImg: HTMLImageElement | null;
   dragHandle: HTMLDivElement | null;
@@ -79,6 +82,7 @@ export interface GlobalState {
   reverseOrder: boolean;
   autoScrollEnabled: boolean;
   autoDeletionEnabled: boolean; // New
+  humanLikeDelays: boolean; // New - Enable random delays for human-like behavior
   lastDeleteTime: number;
   isScrolling: boolean;
   isDragging: boolean;

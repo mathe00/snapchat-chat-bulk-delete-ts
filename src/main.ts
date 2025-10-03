@@ -1,7 +1,7 @@
 // src/main.ts
 import { CONFIG } from './config';
 import { STATE, handleError } from './state';
-import { simulateHover, isDeleteButton } from './domUtils';
+import { simulateHover, isDeleteButton, triggerContextMenu, waitForDOMStabilization } from './domUtils';
 import { createPanelUI, injectStyles, updateUICore, setUIDeleteCounterInstance } from './ui';
 import { setupSnapchatThemeObserver } from './themeManager';
 import { DeleteCountManager } from './deleteCounter';
@@ -15,10 +15,6 @@ declare const GM_addStyle: (css: string) => HTMLStyleElement;
 declare const GM_xmlhttpRequest: (details: Tampermonkey.Request) => void;
 // --- End GM Function Declarations ---
 
-console.log(`[${CONFIG.SCRIPT_NAME}] GM_getValue type: ${typeof GM_getValue}`);
-console.log(`[${CONFIG.SCRIPT_NAME}] GM_setValue type: ${typeof GM_setValue}`);
-console.log(`[${CONFIG.SCRIPT_NAME}] GM_addStyle type: ${typeof GM_addStyle}`);
-console.log(`[${CONFIG.SCRIPT_NAME}] GM_xmlhttpRequest type: ${typeof GM_xmlhttpRequest}`);
 
 let deleteCounter: DeleteCountManager;
 
@@ -33,7 +29,6 @@ async function loadPreferences(): Promise<void> {
       STATE.themePreference = CONFIG.DEFAULT_THEME;
       STATE.ui.isMinimized = false;
       STATE.deletionSpeed = 'normal';
-      console.log(`[${CONFIG.SCRIPT_NAME}] GM_getValue not found, defaults set.`);
       return;
     }
 
@@ -45,7 +40,7 @@ async function loadPreferences(): Promise<void> {
     STATE.themePreference = (await GM_getValue(CONFIG.STORAGE_KEYS.THEME_PREFERENCE, CONFIG.DEFAULT_THEME)) as ThemeOption;
     STATE.ui.isMinimized = (await GM_getValue(CONFIG.STORAGE_KEYS.PANEL_MINIMIZED, false)) as boolean;
     STATE.deletionSpeed = (await GM_getValue(CONFIG.STORAGE_KEYS.DELETION_SPEED, 'normal')) as DeletionSpeed;
-    console.log(`[${CONFIG.SCRIPT_NAME}] Preferences loaded via GM_getValue.`);
+    STATE.humanLikeDelays = (await GM_getValue(CONFIG.STORAGE_KEYS.HUMAN_LIKE_DELAYS, true)) as boolean;
   } catch (error: any) {
     handleError(error, "Loading preferences");
     // Set defaults on error
@@ -56,6 +51,7 @@ async function loadPreferences(): Promise<void> {
     STATE.themePreference = CONFIG.DEFAULT_THEME;
     STATE.ui.isMinimized = false;
     STATE.deletionSpeed = 'normal';
+    STATE.humanLikeDelays = true;
   }
 }
 
@@ -76,14 +72,18 @@ async function handlePotentialDeleteButton(button: HTMLButtonElement): Promise<v
 }
 
 function findMyMessages(): HTMLElement[] {
-    return Array.from(
-      document.querySelectorAll<HTMLElement>(CONFIG.SELECTORS.MESSAGE_CONTAINER)
-    ).filter((msgContainer) => {
+    const allMessages = document.querySelectorAll<HTMLElement>(CONFIG.SELECTORS.MESSAGE_CONTAINER);
+
+    const myMessages = Array.from(allMessages).filter((msgContainer) => {
       const header = msgContainer.querySelector<HTMLElement>(CONFIG.SELECTORS.MESSAGE_HEADER_SELECTOR);
       if (!header) return false;
       const isUserMessage = !!header.querySelector(CONFIG.SELECTORS.USER_MESSAGE_IDENTIFIER_ELEMENT);
-      return isUserMessage && !STATE.processedMessages.has(msgContainer);
+      const isProcessed = STATE.processedMessages.has(msgContainer);
+
+      return isUserMessage && !isProcessed;
     });
+
+    return myMessages;
 }
 
 // --- Automatic Deletion Loop ---
@@ -120,7 +120,7 @@ async function deleteNextMessageAutomatic(): Promise<void> {
                 await new Promise(resolve => setTimeout(resolve, delays.messageInteractionDelay));
 
                 if (!document.querySelector(CONFIG.SELECTORS.CONTEXT_MENU)) {
-                    console.warn(`[${CONFIG.SCRIPT_NAME}] Context menu did not appear for a message. Another script might be interfering.`);
+                    // Context menu didn't appear, but continue anyway
                 }
 
             } else {
@@ -132,53 +132,177 @@ async function deleteNextMessageAutomatic(): Promise<void> {
     }
 
     if (STATE.observerActive && STATE.autoDeletionEnabled) {
-        const delays = CONFIG.DELETION_SPEEDS[STATE.deletionSpeed];
-        setTimeout(deleteNextMessageAutomatic, delays.messageInteractionDelay * 2);
-    }
+          const delays = CONFIG.DELETION_SPEEDS[STATE.deletionSpeed];
+          // Add random delay to simulate human behavior and avoid detection (if enabled)
+          const baseDelay = delays.messageInteractionDelay * 2;
+          const humanDelay = STATE.humanLikeDelays ? Math.random() * 1000 + 500 : 0;
+          const randomDelay = baseDelay + humanDelay;
+          setTimeout(deleteNextMessageAutomatic, randomDelay);
+      }
 }
 
 // --- Manual Hover Deletion Loop ---
 async function hoverNextMessage(): Promise<void> {
-  if (!STATE.observerActive || STATE.isScrolling) return;
-  try {
-    const delays = CONFIG.DELETION_SPEEDS[STATE.deletionSpeed];
-    let messages = findMyMessages();
+    if (!STATE.observerActive || STATE.isScrolling) return;
+    try {
+      const delays = CONFIG.DELETION_SPEEDS[STATE.deletionSpeed];
+      let messages = findMyMessages();
 
-    if (STATE.reverseOrder) {
-      messages.reverse();
+      if (STATE.reverseOrder) {
+        messages.reverse();
+      }
+
+      if (messages.length > 0) {
+          const message = messages[0];
+          if (!STATE.observerActive) return;
+          STATE.processedMessages.add(message);
+
+          const hoverTargets: (Element | null)[] = [
+              message.querySelector(CONFIG.SELECTORS.MESSAGE_HOVER_TARGET_1),
+              message.querySelector(CONFIG.SELECTORS.MESSAGE_HOVER_TARGET_2),
+              message.querySelector(CONFIG.SELECTORS.MESSAGE_HOVER_TARGET_3),
+              message,
+          ].filter(Boolean);
+
+          for (let i = 0; i < hoverTargets.length; i++) {
+              const target = hoverTargets[i];
+              if (!STATE.observerActive || !target) break;
+
+              // Try multiple hover methods
+              simulateHover(target, true);
+              await new Promise((resolve) => setTimeout(resolve, delays.messageInteractionDelay));
+
+              // Also try right-click simulation
+              const contextMenuEvent = new MouseEvent('contextmenu', {
+                  bubbles: true,
+                  cancelable: true,
+                  view: target.ownerDocument.defaultView,
+                  button: 2, // Right click
+                  buttons: 2
+              });
+              target.dispatchEvent(contextMenuEvent);
+              await new Promise((resolve) => setTimeout(resolve, 100));
+
+              // Check for context menu with current selector
+              const menuVisible = !!document.querySelector(CONFIG.SELECTORS.CONTEXT_MENU);
+
+              // Also check for context menus nested inside message bubbles
+              const nestedContextMenus = document.querySelectorAll('.KB4Aq .gFryU, .T1yt2 .gFryU');
+
+              // Check if context menu is already visible in the current message
+              const messageContextMenu = message.querySelector('.gFryU');
+
+              // Also check for context menus in parent elements
+              const parentContextMenu = message.closest('.gFryU');
+
+              // Check for any context menus in the entire chat area
+              const allContextMenusInChat = document.querySelectorAll('.gFryU');
+
+              // Check if we're dealing with a "message not found" scenario
+              const messageList = document.querySelector('.MibAa');
+              const isEmptyOrLoading = !messageList || messageList.children.length === 0;
+
+              if (menuVisible || nestedContextMenus.length > 0 || messageContextMenu || parentContextMenu || allContextMenusInChat.length > 0) {
+                  await new Promise((resolve) => setTimeout(resolve, 200));
+
+                  // Reset hover state before breaking
+                  simulateHover(target, false);
+                  await new Promise((resolve) => setTimeout(resolve, 100));
+                  break;
+              } else if (isEmptyOrLoading) {
+                  return; // Exit early if no messages to process
+              } else {
+                  simulateHover(target, false);
+                  const fallbackDelay = STATE.humanLikeDelays ? 50 + Math.random() * 100 : 0;
+                  await new Promise((resolve) => setTimeout(resolve, fallbackDelay));
+
+                  // Check if this was the last target and no context menu appeared
+                  if (i === hoverTargets.length - 1) {
+                    const finalContextMenuCheck = document.querySelector('.gFryU');
+                    if (!finalContextMenuCheck) {
+                      const remainingMessages = document.querySelectorAll('.T1yt2');
+                      if (remainingMessages.length === 0) {
+                        return; // All done
+                      }
+                    }
+                  }
+
+                  // Try multiple fallback methods
+
+                  // Method 1: Context menu trigger
+                  const contextMenuTriggered = await triggerContextMenu(target);
+
+                  if (contextMenuTriggered) {
+                    await new Promise((resolve) => setTimeout(resolve, 200));
+                    break;
+                  }
+
+                  // Method 2: Try clicking on the message first
+                  const clickEvent = new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: target.ownerDocument.defaultView,
+                  });
+                  target.dispatchEvent(clickEvent);
+                  await new Promise((resolve) => setTimeout(resolve, 100));
+
+                  // Method 3: Try different hover targets
+                  const alternativeTargets = [
+                    target.querySelector('.KB4Aq'),
+                    target.querySelector('ul.rbTsq'),
+                    target.closest('.T1yt2')
+                  ].filter(Boolean);
+
+                  for (const altTarget of alternativeTargets) {
+                    if (altTarget && altTarget !== target) {
+                      simulateHover(altTarget, true);
+                      await new Promise((resolve) => setTimeout(resolve, 150));
+
+                      const altMenuCheck = document.querySelector('.gFryU');
+                      if (altMenuCheck) {
+                        await new Promise((resolve) => setTimeout(resolve, 100));
+                        break;
+                      }
+                      simulateHover(altTarget, false);
+                    }
+                  }
+
+                  // Final check after all methods
+                  const finalMenuCheck = document.querySelector('.gFryU');
+                  if (finalMenuCheck) {
+                    await new Promise((resolve) => setTimeout(resolve, 100));
+                    break;
+                  }
+
+                  // Check if we've exhausted all messages
+                  const remainingMessages = document.querySelectorAll('.T1yt2');
+                  if (remainingMessages.length === 0) {
+                    return; // Exit early if no messages left
+                  }
+              }
+          }
+      }
+    } catch (error: any) {
+      handleError(error, "Manual message hover");
     }
+    if (STATE.observerActive) {
+      const delays = CONFIG.DELETION_SPEEDS[STATE.deletionSpeed];
+      // Wait for DOM to stabilize after deletion
+      waitForDOMStabilization(3000).then((stable) => {
+        // Clear processed messages after DOM stabilizes to handle Snapchat's DOM recreation
+        STATE.processedMessages = new WeakSet<Element>();
 
-    if (messages.length > 0) {
-        const message = messages[0];
-        if (!STATE.observerActive) return;
-        STATE.processedMessages.add(message);
-        const hoverTargets: (Element | null)[] = [
-            message.querySelector(CONFIG.SELECTORS.MESSAGE_HOVER_TARGET_1),
-            message.querySelector(CONFIG.SELECTORS.MESSAGE_HOVER_TARGET_2),
-            message,
-        ].filter(Boolean);
-
-        for (const target of hoverTargets) {
-            if (!STATE.observerActive || !target) break;
-            simulateHover(target, true);
-            await new Promise((resolve) => setTimeout(resolve, delays.messageInteractionDelay));
-            const menuVisible = !!document.querySelector(CONFIG.SELECTORS.CONTEXT_MENU);
-            if (menuVisible) {
-                await new Promise((resolve) => setTimeout(resolve, 50));
-                break;
-            } else {
-                simulateHover(target, false);
-                await new Promise((resolve) => setTimeout(resolve, 10));
-            }
+        if (stable) {
+          setTimeout(() => {
+            hoverNextMessage();
+          }, delays.messageInteractionDelay);
+        } else {
+          setTimeout(() => {
+            hoverNextMessage();
+          }, delays.messageInteractionDelay * 2);
         }
+      });
     }
-  } catch (error: any) {
-    handleError(error, "Manual message hover");
-  }
-  if (STATE.observerActive) {
-    const delays = CONFIG.DELETION_SPEEDS[STATE.deletionSpeed];
-    setTimeout(hoverNextMessage, delays.messageInteractionDelay * 2);
-  }
 }
 
 async function autoScrollChat(): Promise<void> {
@@ -216,8 +340,6 @@ async function autoScrollChat(): Promise<void> {
         await new Promise((resolve) => setTimeout(resolve, CONFIG.SCROLL_INTERVAL));
       }
       await new Promise((resolve) => setTimeout(resolve, CONFIG.LOAD_WAIT_AFTER_SCROLL));
-    } else {
-      console.warn(`[${CONFIG.SCRIPT_NAME}] Chat scroll container not found.`);
     }
     if (STATE.ui.autoScrollToggleButton) {
       STATE.ui.autoScrollToggleButton.classList.remove("scrolling");
@@ -230,29 +352,41 @@ async function autoScrollChat(): Promise<void> {
 }
 
 function setupDomObserver(): void {
-  if (STATE.domObserver) STATE.domObserver.disconnect();
-  STATE.domObserver = new MutationObserver((mutations) => {
-    if (!STATE.observerActive) return;
-    for (const mutation of mutations) {
-      if (mutation.type === "childList") {
-        mutation.addedNodes.forEach((node) => {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            const elementNode = node as Element;
-            if (elementNode.matches && elementNode.matches(CONFIG.SELECTORS.DELETE_BUTTON_CANDIDATE)) {
-              handlePotentialDeleteButton(elementNode as HTMLButtonElement)
-                .catch(err => handleError(err, "DOM Observer - direct match"));
-            }
-            elementNode
-              .querySelectorAll<HTMLButtonElement>(CONFIG.SELECTORS.DELETE_BUTTON_CANDIDATE)
-              .forEach(btn => handlePotentialDeleteButton(btn)
-                .catch(err => handleError(err, "DOM Observer - querySelectorAll")));
-          }
-        });
-      }
-    }
-  });
-  STATE.domObserver.observe(document.body, { childList: true, subtree: true });
-}
+   if (STATE.domObserver) STATE.domObserver.disconnect();
+   STATE.domObserver = new MutationObserver((mutations) => {
+     if (!STATE.observerActive) return;
+     for (const mutation of mutations) {
+       if (mutation.type === "childList") {
+         mutation.addedNodes.forEach((node) => {
+           if (node.nodeType === Node.ELEMENT_NODE) {
+             const elementNode = node as Element;
+
+             if (elementNode.matches && elementNode.matches(CONFIG.SELECTORS.DELETE_BUTTON_CANDIDATE)) {
+               handlePotentialDeleteButton(elementNode as HTMLButtonElement)
+                 .catch(err => handleError(err, "DOM Observer - direct match"));
+             }
+
+             // Also check for context menu buttons
+             if (elementNode.matches && (elementNode.matches('.IxaB_ button') || elementNode.closest('.IxaB_'))) {
+               if (elementNode.tagName === 'BUTTON') {
+                 handlePotentialDeleteButton(elementNode as HTMLButtonElement)
+                   .catch(err => handleError(err, "DOM Observer - context menu button"));
+               }
+             }
+
+             elementNode
+               .querySelectorAll<HTMLButtonElement>(CONFIG.SELECTORS.DELETE_BUTTON_CANDIDATE)
+               .forEach((btn) => {
+                 handlePotentialDeleteButton(btn)
+                   .catch(err => handleError(err, "DOM Observer - querySelectorAll"));
+               });
+           }
+         });
+       }
+     }
+   });
+   STATE.domObserver.observe(document.body, { childList: true, subtree: true });
+ }
 
 function toggleDeletionProcess(): void {
   STATE.observerActive = !STATE.observerActive;
@@ -292,6 +426,7 @@ function toggleDeletionProcess(): void {
     }
     STATE.processedMessages = new WeakSet<Element>();
     STATE.processedButtons = new WeakSet<Element>();
+    // humanLikeDelays setting is preserved across toggles
   }
   updateUICore.toggleButtonState();
   if (updateUICore.settings) {
@@ -304,8 +439,7 @@ function toggleDeletionProcess(): void {
 }
 
 async function initialize(): Promise<void> {
-  console.log(`[${CONFIG.SCRIPT_NAME}] Initializing v${CONFIG.VERSION}...`);
-  try {
+   try {
     deleteCounter = new DeleteCountManager();
     setUIDeleteCounterInstance(deleteCounter);
 
@@ -324,7 +458,6 @@ async function initialize(): Promise<void> {
         handleError(new Error("Toggle button not found after UI creation."), "Initialization");
     }
     setupSnapchatThemeObserver();
-    console.log(`[${CONFIG.SCRIPT_NAME}] Initialized successfully.`);
   } catch (error: any) {
     handleError(error, "Initialization");
   }
