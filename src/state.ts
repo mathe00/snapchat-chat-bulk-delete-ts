@@ -51,7 +51,7 @@ export const STATE: GlobalState = {
   deletionSpeed: "normal" as DeletionSpeed,
 };
 
-export function handleError(error: Error, context: string = "General"): void {
+export function handleError(error: Error, context = "General"): void {
   console.error(
     `[${CONFIG.SCRIPT_NAME} Error] ${context}: ${error.message}`,
     error.stack || "",

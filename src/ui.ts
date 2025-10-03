@@ -4,11 +4,7 @@ import { STATE, handleError } from "./state";
 import { setLogoFromBase64 } from "./gmApi"; // Importing the exported function
 import { cycleThemePreference, applyPanelTheme } from "./themeManager";
 import { getSnapchatPageTheme } from "./domUtils";
-import type {
-  ThemeOption,
-  AppliedTheme,
-  DeletionSpeed,
-} from "./types";
+import type { ThemeOption, AppliedTheme, DeletionSpeed } from "./types";
 import { DeleteCountManager } from "./deleteCounter";
 
 // --- GM Function Declarations for this module ---
@@ -34,7 +30,7 @@ export const updateUICore = {
     b.classList.toggle("inactive", !isActive);
 
     const pulseStyleId = "scbd-pulse-style";
-    let pulseElement = document.getElementById(pulseStyleId);
+    const pulseElement = document.getElementById(pulseStyleId);
     if (isActive && !pulseElement) {
       const s = document.createElement("style");
       s.id = pulseStyleId;
@@ -92,10 +88,9 @@ export const updateUICore = {
   },
   toggleSection: (sectionName: "info" | "settings") => {
     const sectionElement = STATE.ui[`${sectionName}Section`];
-    const visibilityFlag: "isInfoVisible" | "isSettingsVisible" =
-      `is${
-        sectionName.charAt(0).toUpperCase() + sectionName.slice(1)
-      }Visible` as "isInfoVisible" | "isSettingsVisible";
+    const visibilityFlag: "isInfoVisible" | "isSettingsVisible" = `is${
+      sectionName.charAt(0).toUpperCase() + sectionName.slice(1)
+    }Visible` as "isInfoVisible" | "isSettingsVisible";
 
     if (!sectionElement || STATE.ui.isMinimized) return;
 
@@ -105,10 +100,9 @@ export const updateUICore = {
     if (STATE.ui[visibilityFlag]) {
       const otherSectionName = sectionName === "info" ? "settings" : "info";
       const otherSectionElement = STATE.ui[`${otherSectionName}Section`];
-      const otherVisibilityFlag: "isInfoVisible" | "isSettingsVisible" =
-        `is${
-          otherSectionName.charAt(0).toUpperCase() + otherSectionName.slice(1)
-        }Visible` as "isInfoVisible" | "isSettingsVisible";
+      const otherVisibilityFlag: "isInfoVisible" | "isSettingsVisible" = `is${
+        otherSectionName.charAt(0).toUpperCase() + otherSectionName.slice(1)
+      }Visible` as "isInfoVisible" | "isSettingsVisible";
 
       if (otherSectionElement && STATE.ui[otherVisibilityFlag]) {
         STATE.ui[otherVisibilityFlag] = false;
@@ -142,10 +136,10 @@ export const updateUICore = {
         STATE.themePreference.charAt(0).toUpperCase() +
         STATE.themePreference.slice(1);
       STATE.ui.themeToggleButton.title = `Theme: ${themeName}`;
-      if (updateUICore.currentThemeDisplay)
-        updateUICore.currentThemeDisplay();
+      if (updateUICore.currentThemeDisplay) updateUICore.currentThemeDisplay();
     },
-    autoDeletionToggleButton: () => { // New toggle switch updater
+    autoDeletionToggleButton: () => {
+      // New toggle switch updater
       if (!STATE.ui.autoDeletionToggleButton) return;
       STATE.ui.autoDeletionToggleButton.classList.toggle(
         "enabled",
@@ -203,9 +197,10 @@ export const updateUICore = {
             <div class="scbd-info-logo-container">
                 <img id="scbd-info-logo-img" alt="Script Logo" class="scbd-info-logo"/>
             </div>`;
-      STATE.ui.infoLogoImg = STATE.ui.infoSection.querySelector<HTMLImageElement>(
-        "#scbd-info-logo-img",
-      );
+      STATE.ui.infoLogoImg =
+        STATE.ui.infoSection.querySelector<HTMLImageElement>(
+          "#scbd-info-logo-img",
+        );
       if (STATE.ui.infoLogoImg) {
         setLogoFromBase64(
           STATE.ui.infoLogoImg,
@@ -374,7 +369,10 @@ export function createPanelUI(): void {
     STATE.autoDeletionEnabled = !STATE.autoDeletionEnabled;
     if (typeof GM_setValue === "function") {
       try {
-        GM_setValue(CONFIG.STORAGE_KEYS.AUTO_DELETION, STATE.autoDeletionEnabled);
+        GM_setValue(
+          CONFIG.STORAGE_KEYS.AUTO_DELETION,
+          STATE.autoDeletionEnabled,
+        );
       } catch (e: any) {
         handleError(e, "Error saving auto-deletion preference");
       }
@@ -428,7 +426,10 @@ export function createPanelUI(): void {
     STATE.humanLikeDelays = !STATE.humanLikeDelays;
     if (typeof GM_setValue === "function") {
       try {
-        GM_setValue(CONFIG.STORAGE_KEYS.HUMAN_LIKE_DELAYS, STATE.humanLikeDelays);
+        GM_setValue(
+          CONFIG.STORAGE_KEYS.HUMAN_LIKE_DELAYS,
+          STATE.humanLikeDelays,
+        );
       } catch (e: any) {
         handleError(e, "Error saving human-like delays preference");
       }
@@ -540,7 +541,10 @@ function setupDragAndDrop(): void {
     }
   }
   if (STATE.ui.container) {
-    STATE.ui.container.addEventListener("mousedown", dragStart as EventListener);
+    STATE.ui.container.addEventListener(
+      "mousedown",
+      dragStart as EventListener,
+    );
   }
 }
 

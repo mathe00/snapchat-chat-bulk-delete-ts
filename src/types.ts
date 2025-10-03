@@ -1,6 +1,11 @@
 // src/types.ts
 
-export type DeletionSpeed = "slow" | "normal" | "fast" | "insane" | "insane_max";
+export type DeletionSpeed =
+  | "slow"
+  | "normal"
+  | "fast"
+  | "insane"
+  | "insane_max";
 
 export interface Config {
   SCRIPT_NAME: string;

@@ -1,6 +1,6 @@
 // src/deleteCounter.ts
-import { CONFIG } from './config';
-import { STATE } from './state'; // For UI updates
+import { CONFIG } from "./config";
+import { STATE } from "./state"; // For UI updates
 
 interface Counters {
   total: number;
@@ -19,7 +19,7 @@ export class DeleteCountManager {
   }
 
   private extractChatId(): string {
-    const match = window.location.pathname.match(/\/([^\/]+)$/);
+    const match = window.location.pathname.match(/\/([^/]+)$/);
     return match ? match[1] : "unknown_chat";
   }
 
@@ -53,8 +53,10 @@ export class DeleteCountManager {
           ? Math.max(
               0,
               Math.ceil(
-                (CONFIG.AUTO_SCROLL_DELAY - (Date.now() - STATE.lastDeleteTime)) / 1000
-              )
+                (CONFIG.AUTO_SCROLL_DELAY -
+                  (Date.now() - STATE.lastDeleteTime)) /
+                  1000,
+              ),
             )
           : "-";
       STATE.ui.counterDisplay.innerHTML = `<div>Chat: ${currentChatCount}</div><div>Total: ${this.counters.total}</div><div>Next scroll: ${timeUntilScroll}s</div>`;
