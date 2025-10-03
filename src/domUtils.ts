@@ -113,9 +113,7 @@ export function triggerContextMenu(element: Element | null): Promise<boolean> {
  * @param timeout Maximum time to wait in milliseconds.
  * @returns Promise that resolves when DOM is stable.
  */
-export function waitForDOMStabilization(
-  timeout = 5000,
-): Promise<boolean> {
+export function waitForDOMStabilization(timeout = 5000): Promise<boolean> {
   return new Promise((resolve) => {
     const startTime = Date.now();
     let lastMessageCount = 0;

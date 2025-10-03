@@ -11,5 +11,13 @@
     "browser": true,
     "es2020": true,
     "node": true
-  }
+  },
+  "ignorePatterns": [
+    "dist/",
+    "node_modules/",
+    "*.min.js",
+    "*.min.css",
+    "coverage/",
+    "*.log"
+  ]
 }
