@@ -239,8 +239,8 @@ snapchat-chat-bulk-delete-ts/
       ```
     - To watch for changes and rebuild automatically:
       `bash
-    npm run watch
-    `
+npm run watch
+`
       The built UserScript will be located in the `dist/` folder.
 
 <a id="contributing"></a>

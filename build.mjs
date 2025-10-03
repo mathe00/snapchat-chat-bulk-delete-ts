@@ -12,8 +12,7 @@ const AUTHOR = packageJson.author; // "mathe00 (Ported by T3 Chat)"
 const NAMESPACE = "https://github.com/mathe00/snapchat-chat-bulk-delete-ts";
 const SUPPORT_URL =
   "https://github.com/mathe00/snapchat-chat-bulk-delete-ts/issues";
-const HOMEPAGE_URL =
-  "https://github.com/mathe00/snapchat-chat-bulk-delete-ts";
+const HOMEPAGE_URL = "https://github.com/mathe00/snapchat-chat-bulk-delete-ts";
 
 const entryPoint = "src/main.ts";
 const outfile = "dist/snapchat-chat-bulk-delete.user.js";
@@ -122,10 +121,7 @@ if (watchMode) {
         await build();
       } else if (filename) {
         // For directory changes, check if a relevant file type was involved
-        const changedPath = path.join(
-          fileOrDir,
-          filename,
-        ); // Construct full path if filename is relative to watched dir
+        const changedPath = path.join(fileOrDir, filename); // Construct full path if filename is relative to watched dir
         if (
           changedPath.endsWith(".ts") ||
           path.basename(changedPath) === path.basename(logoFilePath)
