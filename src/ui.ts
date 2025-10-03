@@ -20,14 +20,50 @@ export function setUIDeleteCounterInstance(instance: DeleteCountManager) {
   deleteCounterInstance = instance;
 }
 
+/**
+ * Triggers a flash animation effect on a given HTML element.
+ * This function adds a CSS class that plays a highlight animation,
+ * then removes it after the animation completes to allow re-triggering.
+ *
+ * @param element - The HTML element to apply the flash animation to
+ * @param animationClass - The CSS class name for the animation (default: 'scbd-theme-flash')
+ * @param duration - Duration in milliseconds before removing the class (default: 600ms)
+ */
+export function triggerFlashAnimation(
+  element: HTMLElement,
+  animationClass: string = "scbd-theme-flash",
+  duration: number = 600,
+): void {
+  if (!element) return;
+
+  // Remove any existing animation class first
+  element.classList.remove(animationClass);
+
+  // Force a reflow to ensure the animation restarts
+  void element.offsetWidth;
+
+  // Add the animation class to trigger the effect
+  element.classList.add(animationClass);
+
+  // Remove the class after animation completes to allow re-triggering
+  setTimeout(() => {
+    element.classList.remove(animationClass);
+  }, duration);
+}
+
 export const updateUICore = {
   toggleButtonState: () => {
     if (!STATE.ui.toggleButton) return;
     const b = STATE.ui.toggleButton;
     const isActive = STATE.observerActive;
     b.textContent = isActive ? "PAUSE" : "START";
-    b.classList.toggle("active", isActive);
-    b.classList.toggle("inactive", !isActive);
+    b.classList.remove("active", "inactive");
+    b.classList.add(isActive ? "active" : "inactive");
+
+    // Apply theme-specific styling to toggle button for proper dark theme compatibility
+    // Ensures the toggle button matches the current panel theme
+    b.classList.remove("theme-light", "theme-dark");
+    b.classList.add(`theme-${STATE.currentAppliedTheme}`);
 
     const pulseStyleId = "scbd-pulse-style";
     const pulseElement = document.getElementById(pulseStyleId);
@@ -256,6 +292,17 @@ export function createPanelUI(): void {
     e.stopPropagation();
     cycleThemePreference();
   });
+  // Add hover effect to theme display when hovering theme button
+  STATE.ui.themeToggleButton.addEventListener("mouseenter", () => {
+    if (STATE.ui.currentThemeDisplay) {
+      STATE.ui.currentThemeDisplay.classList.add("scbd-theme-preview");
+    }
+  });
+  STATE.ui.themeToggleButton.addEventListener("mouseleave", () => {
+    if (STATE.ui.currentThemeDisplay) {
+      STATE.ui.currentThemeDisplay.classList.remove("scbd-theme-preview");
+    }
+  });
   headerControls.appendChild(STATE.ui.themeToggleButton);
 
   const settingsButton = document.createElement("button");
@@ -454,6 +501,11 @@ export function createPanelUI(): void {
   footer.className = "scbd-footer";
   STATE.ui.currentThemeDisplay = document.createElement("span");
   STATE.ui.currentThemeDisplay.id = "scbd-current-theme";
+  // Make theme display clickable to cycle themes
+  STATE.ui.currentThemeDisplay.addEventListener("click", (e) => {
+    e.stopPropagation();
+    cycleThemePreference();
+  });
   footer.appendChild(STATE.ui.currentThemeDisplay);
   STATE.ui.versionDisplay = document.createElement("span");
   STATE.ui.versionDisplay.id = "scbd-version";
@@ -593,9 +645,11 @@ export function injectStyles(): void {
       .scbd-content-area { display: flex; flex-direction: column; gap: 8px; }
       #scbd-main-controls { display: flex; flex-direction: column; gap: 8px; }
       #scbd-toggle-button { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: background-color 0.2s, color 0.2s, box-shadow 0.2s; }
+      /* Theme-specific toggle button styling for better dark theme compatibility */
       #scbd-toggle-button.inactive.theme-light { background-color: #FFFC00; color: black; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-      #scbd-toggle-button.inactive.theme-dark { background-color: #FFFC00; color: black; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-      #scbd-toggle-button.active { background-color: #FF4500; color: white; box-shadow: 0 2px 4px rgba(255,69,0,0.3); }
+      #scbd-toggle-button.inactive.theme-dark { background-color: #FFA500; color: black; box-shadow: 0 2px 4px rgba(0,0,0,0.4); }
+      #scbd-toggle-button.active.theme-light { background-color: #FF4500; color: white; box-shadow: 0 2px 4px rgba(255,69,0,0.3); }
+      #scbd-toggle-button.active.theme-dark { background-color: #FF6347; color: white; box-shadow: 0 2px 4px rgba(255,99,71,0.4); }
       #scbd-counter-display { font-size: 11px; text-align: center; opacity: 0.8; line-height: 1.4; }
       .theme-light #scbd-counter-display { color: #444; } .theme-dark #scbd-counter-display { color: #ccc; }
 
@@ -637,11 +691,24 @@ export function injectStyles(): void {
       .scbd-info-logo { max-width: 64px; max-height: 64px; object-fit: contain; display: block; margin: 0 auto; opacity: 0.8; }
 
       .scbd-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 5px; border-top: 1px solid; font-size: 10px; opacity: 0.6; }
-      #scbd-current-theme { text-align: left; } #scbd-version { text-align: right; }
+      #scbd-current-theme { text-align: left; cursor: pointer; transition: all 0.2s ease; }
+      #scbd-version { text-align: right; }
       .theme-light .scbd-footer { border-top-color: rgba(0,0,0,0.1); }
       .theme-dark .scbd-footer { border-top-color: rgba(255,255,255,0.1); }
 
       @keyframes scbd-fade-in { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+      /* Animation for theme change feedback - provides visual confirmation when theme cycles */
+      @keyframes scbd-theme-flash {
+        0% { background-color: rgba(255, 255, 0, 0.3); transform: scale(1); }
+        50% { background-color: rgba(255, 255, 0, 0.6); transform: scale(1.05); }
+        100% { background-color: transparent; transform: scale(1); }
+      }
+      /* CSS class for theme flash animation - applied temporarily to show theme change */
+      .scbd-theme-flash { animation: scbd-theme-flash 0.6s ease-out; border-radius: 3px; }
+
+      /* Preview effect for theme display when hovering over theme button */
+      .scbd-theme-preview { transform: scale(1.1) !important; opacity: 0.9 !important; font-weight: bold !important; }
     `);
   }
 }

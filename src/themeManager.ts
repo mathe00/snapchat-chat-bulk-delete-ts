@@ -3,7 +3,7 @@ import { CONFIG } from "./config";
 import { STATE, handleError } from "./state";
 import { getSnapchatPageTheme } from "./domUtils";
 import type { ThemeOption, AppliedTheme } from "./types";
-import { updateUICore } from "./ui";
+import { updateUICore, triggerFlashAnimation } from "./ui";
 
 // --- GM Function Declarations for this module ---
 declare const GM_setValue: (key: string, value: any) => void; // GM_setValue typically returns void
@@ -15,6 +15,8 @@ export function applyPanelTheme(theme: AppliedTheme): void {
   STATE.ui.container.classList.add(`theme-${theme}`);
   STATE.currentAppliedTheme = theme;
   if (updateUICore.currentThemeDisplay) updateUICore.currentThemeDisplay();
+  // Update toggle button styling to match the new theme for consistency
+  if (updateUICore.toggleButtonState) updateUICore.toggleButtonState();
 }
 
 export function cycleThemePreference(): void {
@@ -42,6 +44,12 @@ export function cycleThemePreference(): void {
     applyPanelTheme(getSnapchatPageTheme());
   } else {
     applyPanelTheme(STATE.themePreference as AppliedTheme);
+  }
+
+  // Trigger flash animation on the theme display to provide visual feedback when theme changes
+  // This gives users immediate confirmation that the theme switch occurred
+  if (STATE.ui.currentThemeDisplay) {
+    triggerFlashAnimation(STATE.ui.currentThemeDisplay);
   }
 }
 
