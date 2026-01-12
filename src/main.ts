@@ -29,6 +29,8 @@ async function loadPreferences(): Promise<void> {
       handleError(new Error("GM_getValue is not available for loading preferences."), "loadPreferences");
       STATE.reverseOrder = true;
       STATE.autoScrollEnabled = false;
+      STATE.unsaveEnabled = false;
+      STATE.deleteEnabled = true;
       STATE.uiPosition = { x: 20, y: 20 };
       STATE.themePreference = CONFIG.DEFAULT_THEME;
       STATE.ui.isMinimized = false;
@@ -38,6 +40,8 @@ async function loadPreferences(): Promise<void> {
 
     STATE.reverseOrder = (await GM_getValue(CONFIG.STORAGE_KEYS.REVERSE_ORDER, true)) as boolean;
     STATE.autoScrollEnabled = (await GM_getValue(CONFIG.STORAGE_KEYS.AUTO_SCROLL, false)) as boolean;
+    STATE.unsaveEnabled = (await GM_getValue(CONFIG.STORAGE_KEYS.UNSAVE, false)) as boolean;
+    STATE.deleteEnabled = (await GM_getValue(CONFIG.STORAGE_KEYS.DELETE, true)) as boolean;
     const storedPosition = (await GM_getValue(CONFIG.STORAGE_KEYS.UI_POSITION)) as UIPosition | undefined;
     STATE.uiPosition = storedPosition || { x: 20, y: 20 };
     STATE.themePreference = (await GM_getValue(CONFIG.STORAGE_KEYS.THEME_PREFERENCE, CONFIG.DEFAULT_THEME)) as ThemeOption;
@@ -47,6 +51,8 @@ async function loadPreferences(): Promise<void> {
     handleError(error, "Loading preferences");
     STATE.reverseOrder = true;
     STATE.autoScrollEnabled = false;
+    STATE.unsaveEnabled = false;
+    STATE.deleteEnabled = true;
     STATE.uiPosition = { x: 20, y: 20 };
     STATE.themePreference = CONFIG.DEFAULT_THEME;
     STATE.ui.isMinimized = false;
@@ -187,6 +193,7 @@ function setupDomObserver(): void {
 }
 
 function toggleDeletionProcess(): void {
+  if (!STATE.unsaveEnabled && !STATE.deleteEnabled) return;
   STATE.observerActive = !STATE.observerActive;
   if (STATE.observerActive) {
     STATE.lastDeleteTime = Date.now();
@@ -221,6 +228,8 @@ function toggleDeletionProcess(): void {
   if (updateUICore.settings) {
     updateUICore.settings.orderToggleButton();
     updateUICore.settings.autoScrollToggleButton();
+    updateUICore.settings.unsaveToggleButton();
+    updateUICore.settings.deleteToggleButton();
   }
   deleteCounter.updateDisplay();
 }

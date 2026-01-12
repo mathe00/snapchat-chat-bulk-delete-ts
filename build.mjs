@@ -9,6 +9,9 @@ const packageJson = JSON.parse(await fs.readFile("./package.json", "utf-8"));
 const SCRIPT_NAME = "Snapchat Chat Bulk Delete";
 const VERSION = packageJson.version;
 const AUTHOR = packageJson.author; // "mathe00 (Ported by T3 Chat)"
+const CONTRIBUTORS = packageJson.contributors
+  .map(c => `// @contributor  ${c.name}${c.url ? ` (${c.url})` : ''}`)
+  .join('\n');
 const NAMESPACE = "https://github.com/mathe00/snapchat-chat-bulk-delete-ts";
 const SUPPORT_URL =
   "https://github.com/mathe00/snapchat-chat-bulk-delete-ts/issues";
@@ -54,10 +57,12 @@ async function build() {
 // @name         ${SCRIPT_NAME}
 // @namespace    ${NAMESPACE}
 // @version      ${VERSION}
-// @description  Advanced bulk message deletion tool for Snapchat Web. Features theme options, persistent settings, automatic message detection, efficient deletion, auto-scroll, configurable deletion order, and a sleek, modern, minimizable interface. Operates by simulating user interactions.
+// @description  Advanced bulk message deletion and unsave tool for Snapchat Web. Features theme options, persistent settings, automatic message detection, efficient deletion, efficient unsave, auto-scroll, configurable deletion order, and a sleek, modern, minimizable interface. Operates by simulating user interactions.
 // @author       ${AUTHOR}
+${CONTRIBUTORS}
 // @match        https://web.snapchat.com/*
-// @match        https://www.snapchat.com/web/*
+// @match        https://www.snapchat.com/web*
+// @match        https://snapchat.com/web*
 // @icon         ${logoBase64DataURL}
 // @grant        GM_addStyle
 // @grant        GM_setValue

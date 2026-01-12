@@ -132,6 +132,30 @@ export const updateUICore = {
       );
       STATE.ui.autoScrollToggleButton.disabled = STATE.observerActive;
     },
+    unsaveToggleButton: () => {
+      if (!STATE.ui.unsaveToggleButton) return;
+      STATE.ui.unsaveToggleButton.classList.toggle(
+        "enabled",
+        STATE.unsaveEnabled,
+      );
+      STATE.ui.unsaveToggleButton.setAttribute(
+        "aria-checked",
+        String(STATE.unsaveEnabled),
+      );
+      STATE.ui.unsaveToggleButton.disabled = STATE.observerActive;
+    },
+    deleteToggleButton: () => {
+      if (!STATE.ui.deleteToggleButton) return;
+      STATE.ui.deleteToggleButton.classList.toggle(
+        "enabled",
+        STATE.deleteEnabled,
+      );
+      STATE.ui.deleteToggleButton.setAttribute(
+        "aria-checked",
+        String(STATE.deleteEnabled),
+      );
+      STATE.ui.deleteToggleButton.disabled = STATE.observerActive;
+    },
     themeToggleButton: () => {
       if (!STATE.ui.themeToggleButton) return;
       const themeName =
@@ -162,7 +186,7 @@ export const updateUICore = {
             <p><strong>${CONFIG.SCRIPT_NAME} v${CONFIG.VERSION}</strong></p>
             <p>Operates by simulating UI clicks. No network requests are modified.
                User's own messages are identified based on their unique appearance in the chat.</p>
-            <p>Settings (theme, order, auto-scroll) are saved.</p>
+            <p>Settings (theme, order, auto-scroll, unsave, delete) are saved.</p>
             <div class="scbd-info-logo-container">
                 <img id="scbd-info-logo-img" alt="Script Logo" class="scbd-info-logo"/>
             </div>`;
@@ -340,6 +364,76 @@ export function createPanelUI(): void {
   STATE.ui.settingsSection.appendChild(autoScrollDiv);
   contentArea.appendChild(STATE.ui.settingsSection);
 
+  const unsaveDiv = document.createElement("div");
+  unsaveDiv.className = "scbd-setting-row";
+  const unsaveLabel = document.createElement("span");
+  unsaveLabel.textContent = "Unsave:";
+  unsaveDiv.appendChild(unsaveLabel);
+  STATE.ui.unsaveToggleButton = document.createElement("button");
+  STATE.ui.unsaveToggleButton.className = "scbd-toggle-switch";
+  STATE.ui.unsaveToggleButton.setAttribute("role", "switch");
+  STATE.ui.unsaveToggleButton.setAttribute(
+    "aria-checked",
+    String(STATE.unsaveEnabled),
+  );
+  STATE.ui.unsaveToggleButton.addEventListener("click", () => {
+    if (STATE.observerActive) return;
+    STATE.unsaveEnabled = !STATE.unsaveEnabled;
+    if (typeof GM_setValue === "function") {
+      try {
+        GM_setValue(CONFIG.STORAGE_KEYS.AUTO_SCROLL, STATE.unsaveEnabled);
+      } catch (e: any) {
+        handleError(e, "Error saving auto-scroll preference");
+      }
+    } else {
+      handleError(
+        new Error("GM_setValue is not a function for unsave"),
+        "GM_setValue Check",
+      );
+    }
+    if (updateUICore.settings?.unsaveToggleButton)
+      updateUICore.settings.unsaveToggleButton();
+    if (deleteCounterInstance) deleteCounterInstance.updateDisplay();
+  });
+  unsaveDiv.appendChild(STATE.ui.unsaveToggleButton);
+  STATE.ui.settingsSection.appendChild(unsaveDiv);
+  contentArea.appendChild(STATE.ui.settingsSection);
+
+  const deleteDiv = document.createElement("div");
+  deleteDiv.className = "scbd-setting-row";
+  const deleteLabel = document.createElement("span");
+  deleteLabel.textContent = "Delete:";
+  deleteDiv.appendChild(deleteLabel);
+  STATE.ui.deleteToggleButton = document.createElement("button");
+  STATE.ui.deleteToggleButton.className = "scbd-toggle-switch";
+  STATE.ui.deleteToggleButton.setAttribute("role", "switch");
+  STATE.ui.deleteToggleButton.setAttribute(
+    "aria-checked",
+    String(STATE.deleteEnabled),
+  );
+  STATE.ui.deleteToggleButton.addEventListener("click", () => {
+    if (STATE.observerActive) return;
+    STATE.deleteEnabled = !STATE.deleteEnabled;
+    if (typeof GM_setValue === "function") {
+      try {
+        GM_setValue(CONFIG.STORAGE_KEYS.AUTO_SCROLL, STATE.deleteEnabled);
+      } catch (e: any) {
+        handleError(e, "Error saving auto-scroll preference");
+      }
+    } else {
+      handleError(
+        new Error("GM_setValue is not a function for delete"),
+        "GM_setValue Check",
+      );
+    }
+    if (updateUICore.settings?.deleteToggleButton)
+      updateUICore.settings.deleteToggleButton();
+    if (deleteCounterInstance) deleteCounterInstance.updateDisplay();
+  });
+  deleteDiv.appendChild(STATE.ui.deleteToggleButton);
+  STATE.ui.settingsSection.appendChild(deleteDiv);
+  contentArea.appendChild(STATE.ui.settingsSection);
+
   STATE.ui.infoSection = document.createElement("div");
   STATE.ui.infoSection.id = "scbd-info-section";
   STATE.ui.infoSection.style.display = "none";
@@ -370,6 +464,8 @@ export function createPanelUI(): void {
   if (updateUICore.settings) {
     updateUICore.settings.orderToggleButton();
     updateUICore.settings.autoScrollToggleButton();
+    updateUICore.settings.unsaveToggleButton();
+    updateUICore.settings.deleteToggleButton();
     updateUICore.settings.themeToggleButton();
   }
   if (updateUICore.versionDisplay) updateUICore.versionDisplay();

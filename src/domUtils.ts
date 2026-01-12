@@ -36,6 +36,7 @@ export function simulateHover(element: Element | null, enter: boolean): void {
  * @returns True if it's the delete button, false otherwise.
  */
 export function isDeleteButton(button: HTMLButtonElement): boolean {
+  let foundButton = false;
   try {
     if (!button.closest(CONFIG.SELECTORS.CONTEXT_MENU)) return false;
     const menu = button.closest(CONFIG.SELECTORS.CONTEXT_MENU);
@@ -45,14 +46,26 @@ export function isDeleteButton(button: HTMLButtonElement): boolean {
     const buttonsInMenu = menu.querySelectorAll<HTMLButtonElement>(
       CONFIG.SELECTORS.DELETE_BUTTON_CANDIDATE
     );
-    if (buttonsInMenu[buttonsInMenu.length - 1] !== button) return false;
-
+    for (let buttonIndex = 0; buttonIndex < buttonsInMenu.length; buttonIndex++) {
+      if (buttonsInMenu[buttonIndex] === button) {
+        foundButton = true;
+        break;
+      }
+    }
+    if (!foundButton) return false;
     const svg = button.querySelector("svg");
     if (!svg) return false;
     const path = svg.querySelector("path");
     if (!path) return false;
     const pathData = path.getAttribute("d");
-    return pathData ? pathData.includes(CONFIG.SELECTORS.DELETE_BUTTON_SVG_PATH_D) : false;
+    // Delete function has higher priority than unsave function
+    if (STATE.deleteEnabled) {
+      return pathData ? pathData.includes(CONFIG.SELECTORS.DELETE_BUTTON_SVG_PATH_D) : false;
+    }
+    if (STATE.unsaveEnabled) {
+      return pathData ? pathData.includes(CONFIG.SELECTORS.UNSAVE_BUTTON_SVG_PATH_D) : false;
+    }
+    return false;
   } catch (error: any) {
     handleError(error, "isDeleteButton check");
     return false;

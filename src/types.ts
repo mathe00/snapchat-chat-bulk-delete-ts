@@ -7,6 +7,8 @@ export interface Config {
   STORAGE_KEYS: {
     REVERSE_ORDER: string;
     AUTO_SCROLL: string;
+    UNSAVE: string;
+    DELETE: string;
     UI_POSITION: string;
     THEME_PREFERENCE: string;
     PANEL_MINIMIZED: string;
@@ -27,6 +29,7 @@ export interface Config {
     CONTEXT_MENU: string;
     DELETE_BUTTON_CANDIDATE: string;
     DELETE_BUTTON_SVG_PATH_D: string;
+    UNSAVE_BUTTON_SVG_PATH_D: string;
     CHAT_SCROLL_CONTAINER_PARENT_SELECTOR: string;
     SNAPCHAT_ROOT_THEME_DARK: string;
     SNAPCHAT_ROOT_THEME_LIGHT: string;
@@ -51,6 +54,8 @@ export interface UIStateElements {
   settingsSection: HTMLDivElement | null;
   orderToggleButton: HTMLButtonElement | null;
   autoScrollToggleButton: HTMLButtonElement | null;
+  unsaveToggleButton: HTMLButtonElement | null;
+  deleteToggleButton: HTMLButtonElement | null;
   themeToggleButton: HTMLButtonElement | null;
   infoSection: HTMLDivElement | null;
   infoLogoImg: HTMLImageElement | null;
@@ -67,6 +72,8 @@ export interface GlobalState {
   observerActive: boolean;
   reverseOrder: boolean;
   autoScrollEnabled: boolean;
+  unsaveEnabled: boolean;
+  deleteEnabled: boolean;
   lastDeleteTime: number;
   isScrolling: boolean;
   isDragging: boolean;
