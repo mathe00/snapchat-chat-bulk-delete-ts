@@ -2,6 +2,12 @@
 
 # 👻 Snapchat Chat Bulk Delete (TypeScript Version)
 
+> [!IMPORTANT]
+> **Status (August 2026):** This project is **no longer actively maintained** (not archived though).
+> I don't use Snapchat anymore, so I can't test changes — the script **worked as of my last use**,
+> but newer Snapchat UI updates may break it without me noticing.
+> **Pull requests are open:** fixes and selector updates are very welcome! 🙏
+
 <p align="center">
   <img src="logo.png" alt="Snapchat Chat Bulk Delete Logo" width="150">
 </p>
