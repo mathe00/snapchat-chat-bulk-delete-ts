@@ -1,6 +1,6 @@
 // src/domUtils.ts
 import { CONFIG } from "./config";
-import { handleError } from "./state";
+import { STATE, handleError } from "./state";
 import type { AppliedTheme } from "./types";
 
 /**
@@ -197,6 +197,48 @@ export function isDeleteButton(button: HTMLButtonElement): boolean {
     handleError(error, "isDeleteButton check");
     return false;
   }
+}
+
+/**
+ * Checks if a button is the "Unsave" action inside a context menu.
+ *
+ * Unlike {@link isDeleteButton} (which additionally relies on a strict
+ * position heuristic validated for the Delete button only), identification
+ * here relies on the context-menu container plus the button's SVG path
+ * fingerprint, which uniquely discriminates the Unsave entry.
+ * @param button The button element to check.
+ * @returns True if it's the unsave button, false otherwise.
+ */
+function isUnsaveButton(button: HTMLButtonElement): boolean {
+  try {
+    if (!button.closest(CONFIG.SELECTORS.CONTEXT_MENU)) return false;
+    if (!button.matches(CONFIG.SELECTORS.DELETE_BUTTON_CANDIDATE)) return false;
+
+    const svg = button.querySelector("svg");
+    if (!svg) return false;
+
+    const path = svg.querySelector("path");
+    if (!path) return false;
+
+    const pathData = path.getAttribute("d");
+    return pathData
+      ? pathData.includes(CONFIG.SELECTORS.UNSAVE_BUTTON_SVG_PATH_D)
+      : false;
+  } catch (error: any) {
+    handleError(error, "isUnsaveButton check");
+    return false;
+  }
+}
+
+/**
+ * Checks if a button is the currently configured action button.
+ * Routes to the Delete or Unsave identification depending on STATE.unsaveEnabled,
+ * so the whole processing pipeline stays agnostic of which action is active.
+ * @param button The button element to check.
+ * @returns True if the button should be clicked for the active mode.
+ */
+export function isTargetActionButton(button: HTMLButtonElement): boolean {
+  return STATE.unsaveEnabled ? isUnsaveButton(button) : isDeleteButton(button);
 }
 
 /**

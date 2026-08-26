@@ -100,6 +100,7 @@ My UserScript aims to ease that pain. Currently, it's pretty respectful of Snapc
   - Delete messages from **Oldest to Newest**.
 - 🎯 **Automatic Message Detection:** Identifies user's own messages based on their unique appearance in the chat.
 - 🖱️ **Efficient Deletion Process:** Simulates hovers and clicks to reveal and use the delete option.
+- 💾 **Unsave Mode (Optional):** Toggle it on to unsave your messages instead of deleting them - ideal for cleaning up saved conversations while keeping their content visible.
 - 📜 **Auto-Scroll (Configurable):**
   - Automatically scrolls up the chat to load older messages when no more messages are found in the current view.
   - Can be toggled on/off.
@@ -107,7 +108,7 @@ My UserScript aims to ease that pain. Currently, it's pretty respectful of Snapc
   - **Auto:** Panel theme automatically matches Snapchat's page theme (Light/Dark).
   - **Light:** Forces a light theme for the panel.
   - **Dark:** Forces a dark theme for the panel.
-- 💾 **Persistent Settings:** User preferences (deletion order, auto-scroll, theme, panel position, minimized state) are saved and loaded across sessions.
+- 💾 **Persistent Settings:** User preferences (deletion order, auto-scroll, theme, panel position, minimized state, unsave mode) are saved and loaded across sessions.
 - 📊 **Deletion Counter:** Displays the number of messages deleted in the current chat and in total for the session.
 - 🚦 **Status Indicators:** Provides visual feedback for active deletion and auto-scrolling.
 
@@ -154,6 +155,7 @@ Essentially, it automates a series of legitimate clicks that you are entitled to
     - Click the **Gear icon (⚙️)** to open the settings section.
     - **Order:** Choose "Newest → Oldest" or "Oldest → Newest".
     - **Auto-Scroll:** Toggle the switch to enable/disable automatic scrolling to load older messages.
+    - **Unsave Mode:** Toggle the switch to unsave your messages instead of deleting them.
     - Click the **Palette icon (🎨)** in the header to cycle through panel themes (Auto, Light, Dark).
 5.  **Start Deletion:**
     - Click the **"START"** button on the panel.

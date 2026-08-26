@@ -14,6 +14,7 @@ export const STATE: GlobalState = {
   autoScrollEnabled: false,
   autoDeletionEnabled: false, // New
   humanLikeDelays: true, // New - Enable random delays for human-like behavior
+  unsaveEnabled: false, // Default to the classic delete behavior
   lastDeleteTime: 0,
   isScrolling: false,
   isDragging: false,
@@ -24,6 +25,9 @@ export const STATE: GlobalState = {
   snapchatThemeObserver: null,
   autoScrollIntervalId: null,
   displayUpdateIntervalId: null,
+  fallbackMessageScanIntervalId: null, // New - Fallback periodic DOM scanner
+  lastFallbackScanTime: 0, // New - Track last fallback scan time
+  scrollTimeout: null, // New - Debounce scroll events
   ui: {
     container: null,
     mainControlsSection: null,
@@ -36,6 +40,7 @@ export const STATE: GlobalState = {
     autoDeletionToggleButton: null, // Changed
     deletionSpeedToggleButton: null,
     humanLikeDelaysToggleButton: null,
+    unsaveToggleButton: null,
     infoSection: null,
     infoLogoImg: null,
     dragHandle: null,

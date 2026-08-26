@@ -1,10 +1,14 @@
 {
   "name": "snapchat-chat-bulk-delete-ts",
-  "version": "3.1.5",
-  "description": "Advanced bulk message deletion tool for Snapchat Web (TypeScript Version)",
+  "version": "3.4.0",
+  "description": "Advanced bulk message deletion and unsave tool for Snapchat Web (TypeScript Version)",
   "scripts": {
     "build": "node build.mjs",
-    "watch": "node build.mjs --watch"
+    "watch": "node build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write src/",
+    "format:check": "prettier --check src/"
   },
   "type": "module",
   "devDependencies": {
@@ -16,6 +20,12 @@
     "prettier": "^3.6.2",
     "typescript": "^5.4.5"
   },
-  "author": "mathe00 (Ported by T3 Chat)",
+  "author": "mathe00",
+  "contributors": [
+    {
+      "name": "alexpapdi",
+      "url": "https://github.com/alexpapdi"
+    }
+  ],
   "license": "MIT"
 }

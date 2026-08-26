@@ -1,9 +1,10 @@
 // ==UserScript==
 // @name         Snapchat Chat Bulk Delete
 // @namespace    https://github.com/mathe00/snapchat-chat-bulk-delete-ts
-// @version      3.1.5
-// @description  Advanced bulk message deletion tool for Snapchat Web. Features theme options, persistent settings, automatic message detection, efficient deletion, auto-scroll, configurable deletion order, and a sleek, modern, minimizable interface. Operates by simulating user interactions.
-// @author       mathe00 (Ported by T3 Chat)
+// @version      3.4.0
+// @description  Advanced bulk message deletion and unsave tool for Snapchat Web. Features theme options, persistent settings, automatic message detection, efficient deletion, optional unsave mode, auto-scroll, configurable deletion order, and a sleek, modern, minimizable interface. Operates by simulating user interactions.
+// @author       mathe00
+// @contributor  alexpapdi (https://github.com/alexpapdi)
 // @match        https://web.snapchat.com/*
 // @match        https://www.snapchat.com/web/*
 // @icon         data:image/png;base64,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
@@ -26,8 +27,8 @@ const INJECTED_LOGO_BASE64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAA
 // src/config.ts
 var CONFIG = {
   SCRIPT_NAME: "Snapchat Chat Bulk Delete",
-  VERSION: "3.3.0",
-  // Version updated for new feature
+  VERSION: "3.4.0",
+  // Synchronize with package.json and build.mjs
   STORAGE_KEYS: {
     REVERSE_ORDER: "scbd_reverse_order_v3_1_5",
     AUTO_SCROLL: "scbd_auto_scroll_v3_1_5",
@@ -37,7 +38,10 @@ var CONFIG = {
     AUTO_DELETION: "scbd_auto_deletion_v3_3_0",
     // Changed
     DELETION_SPEED: "scbd_deletion_speed_v3_2_0",
-    HUMAN_LIKE_DELAYS: "scbd_human_like_delays_v3_3_0"
+    HUMAN_LIKE_DELAYS: "scbd_human_like_delays_v3_3_0",
+    // New keys are suffixed with the version introducing them; legacy keys above
+    // are intentionally kept unchanged so existing users keep their preferences.
+    UNSAVE_MODE: "scbd_unsave_mode_v3_4_0"
   },
   AUTO_SCROLL_DELAY: 5e3,
   MAX_SCROLL_ATTEMPTS: 5,
@@ -55,6 +59,8 @@ var CONFIG = {
     CONTEXT_MENU: ".gFryU",
     DELETE_BUTTON_CANDIDATE: "button.NcaQH",
     DELETE_BUTTON_SVG_PATH_D: "M9.75 4.624",
+    // SVG path fingerprint of the "Unsave" context-menu button (contributed by @alexpapdi, PR #3).
+    UNSAVE_BUTTON_SVG_PATH_D: "18.742 4.576",
     CHAT_SCROLL_CONTAINER_PARENT_SELECTOR: ".T1yt2",
     SNAPCHAT_ROOT_THEME_DARK: ':root[theme="dark"]',
     SNAPCHAT_ROOT_THEME_LIGHT: ':root[theme="light"]'
@@ -80,6 +86,8 @@ var STATE = {
   // New
   humanLikeDelays: true,
   // New - Enable random delays for human-like behavior
+  unsaveEnabled: false,
+  // Default to the classic delete behavior
   lastDeleteTime: 0,
   isScrolling: false,
   isDragging: false,
@@ -90,6 +98,12 @@ var STATE = {
   snapchatThemeObserver: null,
   autoScrollIntervalId: null,
   displayUpdateIntervalId: null,
+  fallbackMessageScanIntervalId: null,
+  // New - Fallback periodic DOM scanner
+  lastFallbackScanTime: 0,
+  // New - Track last fallback scan time
+  scrollTimeout: null,
+  // New - Debounce scroll events
   ui: {
     container: null,
     mainControlsSection: null,
@@ -103,6 +117,7 @@ var STATE = {
     // Changed
     deletionSpeedToggleButton: null,
     humanLikeDelaysToggleButton: null,
+    unsaveToggleButton: null,
     infoSection: null,
     infoLogoImg: null,
     dragHandle: null,
@@ -253,6 +268,24 @@ function isDeleteButton(button) {
     handleError(error, "isDeleteButton check");
     return false;
   }
+}
+function isUnsaveButton(button) {
+  try {
+    if (!button.closest(CONFIG.SELECTORS.CONTEXT_MENU)) return false;
+    if (!button.matches(CONFIG.SELECTORS.DELETE_BUTTON_CANDIDATE)) return false;
+    const svg = button.querySelector("svg");
+    if (!svg) return false;
+    const path = svg.querySelector("path");
+    if (!path) return false;
+    const pathData = path.getAttribute("d");
+    return pathData ? pathData.includes(CONFIG.SELECTORS.UNSAVE_BUTTON_SVG_PATH_D) : false;
+  } catch (error) {
+    handleError(error, "isUnsaveButton check");
+    return false;
+  }
+}
+function isTargetActionButton(button) {
+  return STATE.unsaveEnabled ? isUnsaveButton(button) : isDeleteButton(button);
 }
 function getSnapchatPageTheme() {
   if (document.documentElement.matches(CONFIG.SELECTORS.SNAPCHAT_ROOT_THEME_DARK)) {
@@ -482,6 +515,18 @@ var updateUICore = {
         String(STATE.humanLikeDelays)
       );
       STATE.ui.humanLikeDelaysToggleButton.disabled = STATE.observerActive;
+    },
+    unsaveToggleButton: () => {
+      if (!STATE.ui.unsaveToggleButton) return;
+      STATE.ui.unsaveToggleButton.classList.toggle(
+        "enabled",
+        STATE.unsaveEnabled
+      );
+      STATE.ui.unsaveToggleButton.setAttribute(
+        "aria-checked",
+        String(STATE.unsaveEnabled)
+      );
+      STATE.ui.unsaveToggleButton.disabled = STATE.observerActive;
     }
   },
   versionDisplay: () => {
@@ -500,7 +545,7 @@ var updateUICore = {
             <p><strong>${CONFIG.SCRIPT_NAME} v${CONFIG.VERSION}</strong></p>
             <p>Operates by simulating UI clicks. No network requests are modified.
                User's own messages are identified based on their unique appearance in the chat.</p>
-            <p>Settings (theme, order, auto-scroll) are saved.</p>
+            <p>Settings (theme, order, speed, auto-scroll, delays, unsave mode) are saved.</p>
             <div class="scbd-info-logo-container">
                 <img id="scbd-info-logo-img" alt="Script Logo" class="scbd-info-logo"/>
             </div>`;
@@ -738,6 +783,30 @@ function createPanelUI() {
   });
   humanLikeDelaysDiv.appendChild(STATE.ui.humanLikeDelaysToggleButton);
   STATE.ui.settingsSection.appendChild(humanLikeDelaysDiv);
+  const unsaveDiv = document.createElement("div");
+  unsaveDiv.className = "scbd-setting-row";
+  const unsaveLabel = document.createElement("span");
+  unsaveLabel.textContent = "Unsave Mode:";
+  unsaveDiv.appendChild(unsaveLabel);
+  STATE.ui.unsaveToggleButton = document.createElement("button");
+  STATE.ui.unsaveToggleButton.className = "scbd-toggle-switch";
+  STATE.ui.unsaveToggleButton.setAttribute("role", "switch");
+  STATE.ui.unsaveToggleButton.addEventListener("click", () => {
+    if (STATE.observerActive) return;
+    STATE.unsaveEnabled = !STATE.unsaveEnabled;
+    if (typeof GM_setValue === "function") {
+      try {
+        GM_setValue(CONFIG.STORAGE_KEYS.UNSAVE_MODE, STATE.unsaveEnabled);
+      } catch (e) {
+        handleError(e, "Error saving unsave mode preference");
+      }
+    }
+    if (updateUICore.settings?.unsaveToggleButton)
+      updateUICore.settings.unsaveToggleButton();
+    if (deleteCounterInstance) deleteCounterInstance.updateDisplay();
+  });
+  unsaveDiv.appendChild(STATE.ui.unsaveToggleButton);
+  STATE.ui.settingsSection.appendChild(unsaveDiv);
   contentArea.appendChild(STATE.ui.settingsSection);
   STATE.ui.infoSection = document.createElement("div");
   STATE.ui.infoSection.id = "scbd-info-section";
@@ -774,6 +843,7 @@ function createPanelUI() {
     updateUICore.settings.orderToggleButton();
     updateUICore.settings.autoScrollToggleButton();
     updateUICore.settings.humanLikeDelaysToggleButton();
+    updateUICore.settings.unsaveToggleButton();
     updateUICore.settings.themeToggleButton();
   }
   if (updateUICore.versionDisplay) updateUICore.versionDisplay();
@@ -1019,6 +1089,8 @@ async function loadPreferences() {
       STATE.reverseOrder = true;
       STATE.autoScrollEnabled = false;
       STATE.autoDeletionEnabled = false;
+      STATE.humanLikeDelays = true;
+      STATE.unsaveEnabled = false;
       STATE.uiPosition = { x: 20, y: 20 };
       STATE.themePreference = CONFIG.DEFAULT_THEME;
       STATE.ui.isMinimized = false;
@@ -1057,6 +1129,10 @@ async function loadPreferences() {
       CONFIG.STORAGE_KEYS.HUMAN_LIKE_DELAYS,
       true
     );
+    STATE.unsaveEnabled = await GM_getValue(
+      CONFIG.STORAGE_KEYS.UNSAVE_MODE,
+      false
+    );
   } catch (error) {
     handleError(error, "Loading preferences");
     STATE.reverseOrder = true;
@@ -1067,12 +1143,13 @@ async function loadPreferences() {
     STATE.ui.isMinimized = false;
     STATE.deletionSpeed = "normal";
     STATE.humanLikeDelays = true;
+    STATE.unsaveEnabled = false;
   }
 }
-async function handlePotentialDeleteButton(button) {
+async function handlePotentialActionButton(button) {
   if (STATE.processedButtons.has(button)) return;
   try {
-    if (isDeleteButton(button)) {
+    if (isTargetActionButton(button)) {
       const delays = CONFIG.DELETION_SPEEDS[STATE.deletionSpeed];
       STATE.processedButtons.add(button);
       button.click();
@@ -1083,7 +1160,7 @@ async function handlePotentialDeleteButton(button) {
       );
     }
   } catch (error) {
-    handleError(error, "Processing delete button");
+    handleError(error, "Processing action button");
   }
 }
 function findMyMessages() {
@@ -1102,6 +1179,76 @@ function findMyMessages() {
     return isUserMessage && !isProcessed;
   });
   return myMessages;
+}
+async function fallbackMessageScan() {
+  if (!STATE.observerActive || STATE.isScrolling) return;
+  try {
+    const now = Date.now();
+    if (now - STATE.lastFallbackScanTime < 3e3) {
+      return;
+    }
+    STATE.lastFallbackScanTime = now;
+    const messages = findMyMessages();
+    if (messages.length > 0) {
+      const unprocessedMessages = messages.filter(
+        (msg) => !STATE.processedMessages.has(msg)
+      );
+      if (unprocessedMessages.length > 0) {
+        if (STATE.autoDeletionEnabled) {
+          deleteNextMessageAutomatic().catch(
+            (err) => handleError(err, "Fallback automatic deletion")
+          );
+        } else {
+          hoverNextMessage().catch(
+            (err) => handleError(err, "Fallback hover deletion")
+          );
+        }
+      }
+    }
+  } catch (error) {
+    handleError(error, "Fallback message scan");
+  }
+}
+function startFallbackMessageScanner() {
+  if (STATE.fallbackMessageScanIntervalId) {
+    clearInterval(STATE.fallbackMessageScanIntervalId);
+  }
+  STATE.fallbackMessageScanIntervalId = window.setInterval(
+    fallbackMessageScan,
+    4e3
+  );
+}
+function setupScrollDetection() {
+  const chatContainer = document.querySelector(
+    CONFIG.SELECTORS.CHAT_SCROLL_CONTAINER_PARENT_SELECTOR
+  );
+  if (chatContainer) {
+    chatContainer.addEventListener("scroll", () => {
+      if (!STATE.observerActive) return;
+      if (STATE.scrollTimeout) {
+        clearTimeout(STATE.scrollTimeout);
+      }
+      STATE.scrollTimeout = window.setTimeout(() => {
+        const messages = findMyMessages();
+        if (messages.length > 0) {
+          const unprocessedMessages = messages.filter(
+            (msg) => !STATE.processedMessages.has(msg)
+          );
+          if (unprocessedMessages.length > 0) {
+            if (STATE.autoDeletionEnabled) {
+              deleteNextMessageAutomatic().catch(
+                (err) => handleError(err, "Scroll-triggered automatic deletion")
+              );
+            } else {
+              hoverNextMessage().catch(
+                (err) => handleError(err, "Scroll-triggered hover deletion")
+              );
+            }
+          }
+        }
+      }, 500);
+    });
+  }
 }
 async function deleteNextMessageAutomatic() {
   if (!STATE.observerActive || !STATE.autoDeletionEnabled || STATE.isScrolling)
@@ -1352,13 +1499,13 @@ function setupDomObserver() {
           if (node.nodeType === Node.ELEMENT_NODE) {
             const elementNode = node;
             if (elementNode.matches && elementNode.matches(CONFIG.SELECTORS.DELETE_BUTTON_CANDIDATE)) {
-              handlePotentialDeleteButton(
+              handlePotentialActionButton(
                 elementNode
               ).catch((err) => handleError(err, "DOM Observer - direct match"));
             }
             if (elementNode.matches && (elementNode.matches(".IxaB_ button") || elementNode.closest(".IxaB_"))) {
               if (elementNode.tagName === "BUTTON") {
-                handlePotentialDeleteButton(
+                handlePotentialActionButton(
                   elementNode
                 ).catch(
                   (err) => handleError(err, "DOM Observer - context menu button")
@@ -1368,7 +1515,7 @@ function setupDomObserver() {
             elementNode.querySelectorAll(
               CONFIG.SELECTORS.DELETE_BUTTON_CANDIDATE
             ).forEach((btn) => {
-              handlePotentialDeleteButton(btn).catch(
+              handlePotentialActionButton(btn).catch(
                 (err) => handleError(err, "DOM Observer - querySelectorAll")
               );
             });
@@ -1378,12 +1525,14 @@ function setupDomObserver() {
     }
   });
   STATE.domObserver.observe(document.body, { childList: true, subtree: true });
+  setupScrollDetection();
 }
 function toggleDeletionProcess() {
   STATE.observerActive = !STATE.observerActive;
   if (STATE.observerActive) {
     STATE.lastDeleteTime = Date.now();
     setupDomObserver();
+    startFallbackMessageScanner();
     hoverNextMessage().catch(
       (err) => handleError(err, "Initial hoverNextMessage call")
     );
@@ -1418,6 +1567,14 @@ function toggleDeletionProcess() {
       clearInterval(STATE.displayUpdateIntervalId);
       STATE.displayUpdateIntervalId = null;
     }
+    if (STATE.fallbackMessageScanIntervalId) {
+      clearInterval(STATE.fallbackMessageScanIntervalId);
+      STATE.fallbackMessageScanIntervalId = null;
+    }
+    if (STATE.scrollTimeout) {
+      clearTimeout(STATE.scrollTimeout);
+      STATE.scrollTimeout = null;
+    }
     STATE.processedMessages = /* @__PURE__ */ new WeakSet();
     STATE.processedButtons = /* @__PURE__ */ new WeakSet();
   }
@@ -1427,6 +1584,7 @@ function toggleDeletionProcess() {
     updateUICore.settings.deletionSpeedToggleButton();
     updateUICore.settings.orderToggleButton();
     updateUICore.settings.autoScrollToggleButton();
+    updateUICore.settings.unsaveToggleButton();
   }
   deleteCounter.updateDisplay();
 }

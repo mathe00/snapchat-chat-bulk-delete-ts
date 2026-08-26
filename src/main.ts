@@ -3,7 +3,7 @@ import { CONFIG } from "./config";
 import { STATE, handleError } from "./state";
 import {
   simulateHover,
-  isDeleteButton,
+  isTargetActionButton,
   triggerContextMenu,
   waitForDOMStabilization,
 } from "./domUtils";
@@ -37,6 +37,8 @@ async function loadPreferences(): Promise<void> {
       STATE.reverseOrder = true;
       STATE.autoScrollEnabled = false;
       STATE.autoDeletionEnabled = false; // New
+      STATE.humanLikeDelays = true;
+      STATE.unsaveEnabled = false;
       STATE.uiPosition = { x: 20, y: 20 };
       STATE.themePreference = CONFIG.DEFAULT_THEME;
       STATE.ui.isMinimized = false;
@@ -76,6 +78,10 @@ async function loadPreferences(): Promise<void> {
       CONFIG.STORAGE_KEYS.HUMAN_LIKE_DELAYS,
       true,
     )) as boolean;
+    STATE.unsaveEnabled = (await GM_getValue(
+      CONFIG.STORAGE_KEYS.UNSAVE_MODE,
+      false,
+    )) as boolean;
   } catch (error: any) {
     handleError(error, "Loading preferences");
     // Set defaults on error
@@ -87,15 +93,23 @@ async function loadPreferences(): Promise<void> {
     STATE.ui.isMinimized = false;
     STATE.deletionSpeed = "normal";
     STATE.humanLikeDelays = true;
+    STATE.unsaveEnabled = false;
   }
 }
 
-async function handlePotentialDeleteButton(
+/**
+ * Handles a candidate action button surfaced by the DOM observer.
+ * Depending on STATE.unsaveEnabled the "action" is either deleting or
+ * unsaving the message - both are performed by clicking the matching
+ * context-menu entry identified by {@link isTargetActionButton}.
+ * @param button The button element to inspect and click if it matches.
+ */
+async function handlePotentialActionButton(
   button: HTMLButtonElement,
 ): Promise<void> {
   if (STATE.processedButtons.has(button)) return;
   try {
-    if (isDeleteButton(button)) {
+    if (isTargetActionButton(button)) {
       const delays = CONFIG.DELETION_SPEEDS[STATE.deletionSpeed];
       STATE.processedButtons.add(button);
       button.click();
@@ -106,7 +120,7 @@ async function handlePotentialDeleteButton(
       );
     }
   } catch (error: any) {
-    handleError(error, "Processing delete button");
+    handleError(error, "Processing action button");
   }
 }
 
@@ -129,6 +143,111 @@ function findMyMessages(): HTMLElement[] {
   });
 
   return myMessages;
+}
+
+/**
+ * Fallback periodic DOM scanner to detect messages that weren't caught by MutationObserver.
+ * This function runs every few seconds as a safety net to ensure no messages are missed,
+ * especially when scrolling up loads older messages that don't trigger DOM mutations.
+ * @returns Promise that resolves when the fallback scan is complete.
+ */
+async function fallbackMessageScan(): Promise<void> {
+  if (!STATE.observerActive || STATE.isScrolling) return;
+
+  try {
+    const now = Date.now();
+    // Prevent scanning too frequently (minimum 3 seconds between scans)
+    if (now - STATE.lastFallbackScanTime < 3000) {
+      return;
+    }
+
+    STATE.lastFallbackScanTime = now;
+
+    const messages = findMyMessages();
+
+    if (messages.length > 0) {
+      // Check if we have unprocessed messages that should trigger processing
+      const unprocessedMessages = messages.filter(
+        (msg) => !STATE.processedMessages.has(msg),
+      );
+
+      if (unprocessedMessages.length > 0) {
+        // Trigger the appropriate deletion process based on current mode
+        if (STATE.autoDeletionEnabled) {
+          deleteNextMessageAutomatic().catch((err) =>
+            handleError(err, "Fallback automatic deletion"),
+          );
+        } else {
+          hoverNextMessage().catch((err) =>
+            handleError(err, "Fallback hover deletion"),
+          );
+        }
+      }
+    }
+  } catch (error: any) {
+    handleError(error, "Fallback message scan");
+  }
+}
+
+/**
+ * Sets up a periodic fallback scanner that checks for new messages every few seconds.
+ * This acts as a safety net when the MutationObserver fails to detect DOM changes,
+ * particularly useful for messages loaded during scrolling.
+ */
+function startFallbackMessageScanner(): void {
+  if (STATE.fallbackMessageScanIntervalId) {
+    clearInterval(STATE.fallbackMessageScanIntervalId);
+  }
+
+  // Scan every 4 seconds as a fallback mechanism
+  STATE.fallbackMessageScanIntervalId = window.setInterval(
+    fallbackMessageScan,
+    4000,
+  );
+}
+
+/**
+ * Sets up scroll event detection to improve message detection during manual scrolling.
+ * When users scroll up to load older messages, this helps detect newly loaded content.
+ */
+function setupScrollDetection(): void {
+  const chatContainer = document.querySelector<HTMLElement>(
+    CONFIG.SELECTORS.CHAT_SCROLL_CONTAINER_PARENT_SELECTOR,
+  );
+
+  if (chatContainer) {
+    chatContainer.addEventListener("scroll", () => {
+      if (!STATE.observerActive) return;
+
+      // Debounce scroll events to avoid excessive processing
+      if (STATE.scrollTimeout) {
+        clearTimeout(STATE.scrollTimeout);
+      }
+
+      STATE.scrollTimeout = window.setTimeout(() => {
+        // After scrolling stops, check for new messages
+        const messages = findMyMessages();
+        if (messages.length > 0) {
+          const unprocessedMessages = messages.filter(
+            (msg) => !STATE.processedMessages.has(msg),
+          );
+
+          if (unprocessedMessages.length > 0) {
+            // Trigger processing of newly detected messages
+            if (STATE.autoDeletionEnabled) {
+              deleteNextMessageAutomatic().catch((err) =>
+                handleError(err, "Scroll-triggered automatic deletion"),
+              );
+            } else {
+              hoverNextMessage().catch((err) =>
+                handleError(err, "Scroll-triggered hover deletion"),
+              );
+            }
+          }
+        }
+      }, 500); // Wait 500ms after scrolling stops
+    });
+  }
 }
 
 // --- Automatic Deletion Loop ---
@@ -452,7 +571,7 @@ function setupDomObserver(): void {
               elementNode.matches &&
               elementNode.matches(CONFIG.SELECTORS.DELETE_BUTTON_CANDIDATE)
             ) {
-              handlePotentialDeleteButton(
+              handlePotentialActionButton(
                 elementNode as HTMLButtonElement,
               ).catch((err) => handleError(err, "DOM Observer - direct match"));
             }
@@ -464,7 +583,7 @@ function setupDomObserver(): void {
                 elementNode.closest(".IxaB_"))
             ) {
               if (elementNode.tagName === "BUTTON") {
-                handlePotentialDeleteButton(
+                handlePotentialActionButton(
                   elementNode as HTMLButtonElement,
                 ).catch((err) =>
                   handleError(err, "DOM Observer - context menu button"),
@@ -477,7 +596,7 @@ function setupDomObserver(): void {
                 CONFIG.SELECTORS.DELETE_BUTTON_CANDIDATE,
               )
               .forEach((btn) => {
-                handlePotentialDeleteButton(btn).catch((err) =>
+                handlePotentialActionButton(btn).catch((err) =>
                   handleError(err, "DOM Observer - querySelectorAll"),
                 );
               });
@@ -487,6 +606,9 @@ function setupDomObserver(): void {
     }
   });
   STATE.domObserver.observe(document.body, { childList: true, subtree: true });
+
+  // Set up scroll detection for better message detection during scrolling
+  setupScrollDetection();
 }
 
 function toggleDeletionProcess(): void {
@@ -494,6 +616,9 @@ function toggleDeletionProcess(): void {
   if (STATE.observerActive) {
     STATE.lastDeleteTime = Date.now();
     setupDomObserver();
+
+    // Start the fallback message scanner as a safety net
+    startFallbackMessageScanner();
 
     // Always start the hover-based deletion logic
     hoverNextMessage().catch((err) =>
@@ -533,6 +658,14 @@ function toggleDeletionProcess(): void {
       clearInterval(STATE.displayUpdateIntervalId);
       STATE.displayUpdateIntervalId = null;
     }
+    if (STATE.fallbackMessageScanIntervalId) {
+      clearInterval(STATE.fallbackMessageScanIntervalId);
+      STATE.fallbackMessageScanIntervalId = null;
+    }
+    if (STATE.scrollTimeout) {
+      clearTimeout(STATE.scrollTimeout);
+      STATE.scrollTimeout = null;
+    }
     STATE.processedMessages = new WeakSet<Element>();
     STATE.processedButtons = new WeakSet<Element>();
     // humanLikeDelays setting is preserved across toggles
@@ -543,6 +676,7 @@ function toggleDeletionProcess(): void {
     updateUICore.settings.deletionSpeedToggleButton();
     updateUICore.settings.orderToggleButton();
     updateUICore.settings.autoScrollToggleButton();
+    updateUICore.settings.unsaveToggleButton();
   }
   deleteCounter.updateDisplay();
 }

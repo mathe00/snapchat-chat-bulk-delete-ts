@@ -19,6 +19,7 @@ export interface Config {
     AUTO_DELETION: string; // Changed from DELETION_MODE
     DELETION_SPEED: string;
     HUMAN_LIKE_DELAYS: string;
+    UNSAVE_MODE: string;
   };
   AUTO_SCROLL_DELAY: number;
   MAX_SCROLL_ATTEMPTS: number;
@@ -36,6 +37,7 @@ export interface Config {
     CONTEXT_MENU: string;
     DELETE_BUTTON_CANDIDATE: string;
     DELETE_BUTTON_SVG_PATH_D: string;
+    UNSAVE_BUTTON_SVG_PATH_D: string;
     CHAT_SCROLL_CONTAINER_PARENT_SELECTOR: string;
     SNAPCHAT_ROOT_THEME_DARK: string;
     SNAPCHAT_ROOT_THEME_LIGHT: string;
@@ -71,6 +73,7 @@ export interface UIStateElements {
   autoDeletionToggleButton: HTMLButtonElement | null; // Changed
   deletionSpeedToggleButton: HTMLButtonElement | null;
   humanLikeDelaysToggleButton: HTMLButtonElement | null;
+  unsaveToggleButton: HTMLButtonElement | null;
   infoSection: HTMLDivElement | null;
   infoLogoImg: HTMLImageElement | null;
   dragHandle: HTMLDivElement | null;
@@ -88,6 +91,7 @@ export interface GlobalState {
   autoScrollEnabled: boolean;
   autoDeletionEnabled: boolean; // New
   humanLikeDelays: boolean; // New - Enable random delays for human-like behavior
+  unsaveEnabled: boolean; // When true, messages are unsaved instead of deleted
   lastDeleteTime: number;
   isScrolling: boolean;
   isDragging: boolean;
@@ -98,6 +102,9 @@ export interface GlobalState {
   snapchatThemeObserver: MutationObserver | null;
   autoScrollIntervalId: number | null;
   displayUpdateIntervalId: number | null;
+  fallbackMessageScanIntervalId: number | null; // New - Fallback periodic DOM scanner
+  lastFallbackScanTime: number; // New - Track last fallback scan time
+  scrollTimeout: number | null; // New - Debounce scroll events
   ui: UIStateElements;
   themePreference: ThemeOption;
   currentAppliedTheme: AppliedTheme;

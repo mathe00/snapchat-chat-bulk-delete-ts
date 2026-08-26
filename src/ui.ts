@@ -208,6 +208,18 @@ export const updateUICore = {
       );
       STATE.ui.humanLikeDelaysToggleButton.disabled = STATE.observerActive;
     },
+    unsaveToggleButton: () => {
+      if (!STATE.ui.unsaveToggleButton) return;
+      STATE.ui.unsaveToggleButton.classList.toggle(
+        "enabled",
+        STATE.unsaveEnabled,
+      );
+      STATE.ui.unsaveToggleButton.setAttribute(
+        "aria-checked",
+        String(STATE.unsaveEnabled),
+      );
+      STATE.ui.unsaveToggleButton.disabled = STATE.observerActive;
+    },
   },
   versionDisplay: () => {
     if (STATE.ui.versionDisplay)
@@ -229,7 +241,7 @@ export const updateUICore = {
             <p><strong>${CONFIG.SCRIPT_NAME} v${CONFIG.VERSION}</strong></p>
             <p>Operates by simulating UI clicks. No network requests are modified.
                User's own messages are identified based on their unique appearance in the chat.</p>
-            <p>Settings (theme, order, auto-scroll) are saved.</p>
+            <p>Settings (theme, order, speed, auto-scroll, delays, unsave mode) are saved.</p>
             <div class="scbd-info-logo-container">
                 <img id="scbd-info-logo-img" alt="Script Logo" class="scbd-info-logo"/>
             </div>`;
@@ -487,6 +499,33 @@ export function createPanelUI(): void {
   humanLikeDelaysDiv.appendChild(STATE.ui.humanLikeDelaysToggleButton);
   STATE.ui.settingsSection.appendChild(humanLikeDelaysDiv);
 
+  // Unsave Mode Toggle Switch - when enabled, messages are unsaved instead of deleted
+  const unsaveDiv = document.createElement("div");
+  unsaveDiv.className = "scbd-setting-row";
+  const unsaveLabel = document.createElement("span");
+  unsaveLabel.textContent = "Unsave Mode:";
+  unsaveDiv.appendChild(unsaveLabel);
+  STATE.ui.unsaveToggleButton = document.createElement("button");
+  STATE.ui.unsaveToggleButton.className = "scbd-toggle-switch";
+  STATE.ui.unsaveToggleButton.setAttribute("role", "switch");
+  STATE.ui.unsaveToggleButton.addEventListener("click", () => {
+    if (STATE.observerActive) return;
+    STATE.unsaveEnabled = !STATE.unsaveEnabled;
+    // Persist on the dedicated key - NOT on another setting's key
+    if (typeof GM_setValue === "function") {
+      try {
+        GM_setValue(CONFIG.STORAGE_KEYS.UNSAVE_MODE, STATE.unsaveEnabled);
+      } catch (e: any) {
+        handleError(e, "Error saving unsave mode preference");
+      }
+    }
+    if (updateUICore.settings?.unsaveToggleButton)
+      updateUICore.settings.unsaveToggleButton();
+    if (deleteCounterInstance) deleteCounterInstance.updateDisplay();
+  });
+  unsaveDiv.appendChild(STATE.ui.unsaveToggleButton);
+  STATE.ui.settingsSection.appendChild(unsaveDiv);
+
   contentArea.appendChild(STATE.ui.settingsSection);
 
   STATE.ui.infoSection = document.createElement("div");
@@ -527,6 +566,7 @@ export function createPanelUI(): void {
     updateUICore.settings.orderToggleButton();
     updateUICore.settings.autoScrollToggleButton();
     updateUICore.settings.humanLikeDelaysToggleButton();
+    updateUICore.settings.unsaveToggleButton();
     updateUICore.settings.themeToggleButton();
   }
   if (updateUICore.versionDisplay) updateUICore.versionDisplay();
